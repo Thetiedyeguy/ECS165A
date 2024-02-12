@@ -30,9 +30,34 @@ class Query:
     # Returns False if insert fails for whatever reason
     """
     def insert(self, *columns):
-        schema_encoding = '0' * self.table.num_columns
-        pass
 
+        #Check if key exists, if it doesnt then return false
+        if self.insert_helper_record_exists(columns, columns[self.table.key]):
+            return False
+
+        #Obtain Info for meta_data
+        rid = self.insert_helper_generate_rid()
+        indirection = rid
+        time = datetime.now().strftime("%Y%m%d%H%M%S")
+        schema_encoding = '0' * self.table.num_columns 
+
+        meta_data = [indirection, rid, int(time), schema_encoding]
+        new_record = Record(rid, columns[self.table.key], columns)
+        meta_data.extend(new_record.columns)
+
+        self.table.base_write(meta_data)
+        return True
+
+    #Helper function: retrieves number of records current exist, +1 to obtain new rid
+    def insert_helper_generate_rid(self):
+        rid = self.table.records
+        self.table.records += 1
+        return rid
+    
+    def insert_helper_record_exists(self, columns, key):
+        key_index = self.table.index.indices[0]
+        locations = key_index.locate(columns, key)
+        return len(locations) > 0
     
     """
     # Read matching record with specified search key
