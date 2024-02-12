@@ -106,7 +106,7 @@ class Query:
         if rid not in self.table.page_directory or rid is None: 
             return False
         base_record = self.table.get_record(rid)
-        base_indirection = base_record[INDIRECTION_COLUMN]
+        base_indirection = base_record[self.table.INDIRECTION_COLUMN]
 
 
         #information for metadata
@@ -124,8 +124,8 @@ class Query:
                     new_tail_encoding += '1'
         else
             last_tail = self.table.get_record(base_indirection)
-            tail_indirection =  last_tail[RID_COLUMN]
-            encoding =  last_tail[SCHEMA_ENCODING_COLUMN]
+            tail_indirection =  last_tail[self.table.RID_COLUMN]
+            encoding =  last_tail[self.table.SCHEMA_ENCODING_COLUMN]
 
         pass
     
