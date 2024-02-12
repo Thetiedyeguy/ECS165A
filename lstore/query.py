@@ -37,7 +37,7 @@ class Query:
 
         #Obtain Info for meta_data
         rid = self.insert_helper_generate_rid()
-        indirection = rid
+        indirection = None
         time = datetime.now().strftime("%Y%m%d%H%M%S")
         schema_encoding = '0' * self.table.num_columns 
 
