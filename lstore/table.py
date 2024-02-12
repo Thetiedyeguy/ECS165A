@@ -77,6 +77,29 @@ class Table:
         self.records += 1
         self.updates += 1
 
+    def get_rid(self, column_index, target):
+        rids = []
+        for rid in self.page_directory:
+            record = self.find_record(rid)
+
+    def get_value(self, column, address):
+        id = (column, address[1], address[2], address[3])
+        page = get_page(id)
+        value = page.data[i * 8:(i + 1) * 8]
+
+    def update_value(self, column, address, value):
+        id = (column, address[1], address[2], address[3])
+        page = get_page(id)
+        page.data[i * 8:(i + 1) * 8] = value
+        self.pool[id] = page
+
+    def get_record(self, rid):
+        record = []
+        address = self.page_directory[rid]
+        for i in range(METADATA + self.num_columns):
+            result = self.get_value(i, location)
+            record.append(result)
+
     def get_page(self, id):
         if id in self.pool:
             return self.pool[id]
