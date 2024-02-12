@@ -83,6 +83,7 @@ class Table:
         rids = []
         for rid in self.page_directory:
             record = self.find_record(rid)
+        return rids
 
     def convert_key(self, key):
         return key_to_rid[key]
@@ -91,6 +92,7 @@ class Table:
         id = (column, address[1], address[2], address[3])
         page = get_page(id)
         value = page.data[i * 8:(i + 1) * 8]
+        return value
 
     def update_value(self, column, address, value):
         id = (column, address[1], address[2], address[3])
@@ -104,6 +106,7 @@ class Table:
         for i in range(METADATA + self.num_columns):
             result = self.get_value(i, location)
             record.append(result)
+        return record
 
     def get_page(self, id):
         if id in self.pool:
