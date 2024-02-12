@@ -5,4 +5,4 @@ RECORD_PER_PAGE = PAGE_SIZE / RECORD_SIZE
 RECORD_PER_RANGE = RECORD_PER_PAGE * PAGE_PER_RANGE
 METADATA = 4
 
-# RID = column, type, page number, page range number
+# ID = column, type, page number, page range number
