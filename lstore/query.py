@@ -101,8 +101,33 @@ class Query:
     # Returns False if no records exist with given key or if the target record cannot be accessed due to 2PL locking
     """
     def update(self, primary_key, *columns):
-        pass
+        columnList = list(columns)
+        rid = self.table.index.locate(self.table.key, primary_key)
+        if rid not in self.table.page_directory or rid is None: 
+            return False
+        base_record = self.table.get_record(rid)
+        base_indirection = base_record[INDIRECTION_COLUMN]
 
+
+        #information for metadata
+        time = datetime.now().strftime("%Y%m%d%H%M%S")
+        new_tail_rid = self.table.num_records
+        new_tail_encoding = ''
+        new_tail_indirection = None
+
+        if base_indirection == None:
+            new_tail_indirection = rid
+            for i in columnList:
+                if columnList[i] == None:
+                    new_tail_encoding += '0'
+                else
+                    new_tail_encoding += '1'
+        else
+            last_tail = self.table.get_record(base_indirection)
+            tail_indirection =  last_tail[RID_COLUMN]
+            encoding =  last_tail[SCHEMA_ENCODING_COLUMN]
+
+        pass
     
     """
     :param start_range: int         # Start of the key range to aggregate 
