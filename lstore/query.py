@@ -73,16 +73,14 @@ class Query:
         
         output = []
         matchingRIDs = []
-        returnColumns = []
     
         matchingRIDs = table.get_rid(search_key_index, search_key)
     
         if len(matchingRIDs) == 0: return []
     
-        for rid in rids:
-            returnColumns.append(table.get_record(rid))
+        for eachRID in matchingRIDs: output.append(table.get_record(eachRID))
     
-        return returnColumns #incomplete
+        return output # INCOMPLETE
     
     """
     # Read matching record with specified search key
