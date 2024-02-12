@@ -49,38 +49,37 @@ class Table:
     def base_write(self, columns):
         page_range_idx, page_idx = self.get_page_location('base')
         for i, value in enumerate(columns):
-            id = (i, 'base', self.name, page_range_idx, page_idx)
+            id = (i, 'base', page_range_idx, page_idx)
             page = get_page(id)
 
             page.write(value)
             offset = page.records - 1
             self.pool[id] = page
 
-        rid = columns[0]
-        address = [offset, 'base', self.name, page_range_idx, page_idx]
+        rid = columns[RID_COLUMN]
+        address = [offset, 'base', page_range_idx, page_idx]
         self.page_directory[rid] = address
         self.num_records += 1
 
     def tail_write(self, columns):
         page_range_idx, page_idx = self.get_page_location('tail')
         for i, value in enumerate(columns):
-            id = (i, 'tail', self.name, page_range_idx, page_idx)
+            id = (i, 'tail', page_range_idx, page_idx)
             page = get_page(id)
 
             page.write(value)
             offset = page.records - 1
             self.pool[id] = page
 
-        rid = columns[0]
-        address = [offset, 'base', self.name, page_range_idx, page_idx]
+        rid = columns[RID_COLUMN]
+        address = [offset, 'tail', page_range_idx, page_idx]
         self.page_directory[rid] = address
         self.records += 1
         self.updates += 1
 
-    def get_page(self, id){
+    def get_page(self, id):
         if id in self.pool:
             return self.pool[id]
         page = Page()
         self.pool[id] = page
         return page
-    }
