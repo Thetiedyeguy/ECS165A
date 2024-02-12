@@ -82,7 +82,7 @@ class Table:
     def get_rid(self, column_index, target):
         rids = []
         for rid in self.page_directory:
-            record = self.find_record(rid)
+            record = self.get_record(rid)
         return rids
 
     def convert_key(self, key):
