@@ -30,6 +30,7 @@ class Table:
         self.records = 0
         self.updates = 0
         self.pool = {}
+        self.key_to_rid = {}
         pass
 
     def __merge(self):
@@ -60,6 +61,7 @@ class Table:
         address = [offset, 'base', page_range_idx, page_idx]
         self.page_directory[rid] = address
         self.num_records += 1
+        self.rid_to_key[columns[self.key + METADATA]] = rid
 
     def tail_write(self, columns):
         page_range_idx, page_idx = self.get_page_location('tail')
@@ -81,6 +83,9 @@ class Table:
         rids = []
         for rid in self.page_directory:
             record = self.find_record(rid)
+
+    def convert_key(self, key):
+        return key_to_rid[key]
 
     def get_value(self, column, address):
         id = (column, address[1], address[2], address[3])
