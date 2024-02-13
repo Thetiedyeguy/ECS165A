@@ -16,25 +16,26 @@ class Page:
             raise Exception("Page is full")
         pass
 
-class PageRange:
-    def __init__(self):
-        self.base_idx = 0
-        self.tail_idx = 0
-        self.base_page = [None]
-        self.tail_page = []
+    def get_value(self, location):
+        return int(self.data[location * 8:(location + 1) * 8])
+
+cclass PageRange:
+    def __init__(self, num_base_pages=16):
+        self.base_pages = [None for _ in range(num_base_pages)]
+        self.tail_pages = [None]  # Start with a single tail page
+        self.current_base_idx = 0
+        self.current_tail_idx = 0
+
+    def make_tail_page(self):
+        self.tail_pages.append(Page())
+        self.current_tail_idx += 1
 
     def make_base_page(self, idx):
         self.base_page[idx] = Page()
+        self.current_base_idx += 1
 
-    def make_tail_page(self, idx):
-        self.tail_page.append(Page())
-        self.tail_idx++
+    def get_current_base(self):
+        return self.base_pages[self.current_base_idx]
 
-    def inc_base_idx(self):
-        self.base_idx++
-
-    def current_base(self):
-        return self.base_page[self.base_idx]
-
-    def current_tail(self):
-        return self.tail_page
+    def get_current_tail(self):
+        return self.tail_pages[self.current_tail_idx]
