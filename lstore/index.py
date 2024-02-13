@@ -3,16 +3,16 @@ A data strucutre holding indices for various columns of a table. Key column shou
 """
 
 class Index:
-    class Node:
+    class node:
         def __init__ (self, leaf = True):
             self.keys = []
             self.values = []
             self.children = []
             self.leaf = leaf
-        
+
     def __init__(self, table, max_children = 2):
         # One index for each table. All our empty initially.
-        self.indices = [self.Node() for _ in range(table.num_columns)]
+        self.indices = [self.node() for _ in range(table.num_columns)]
         self.max_children = max_children
 
     """
@@ -77,4 +77,4 @@ class Index:
     """
 
     def drop_index(self, column_number):
-        self.indices[column_number] = None
+        pass
