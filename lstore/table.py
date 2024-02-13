@@ -37,18 +37,16 @@ class Table:
         print("merge is happening")
         pass
 
-    def get_page_location(self, type):
+    def get_page_location(self):
         num_tail = self.updates
         num_base = self.records - num_tail
-        page_range_idx = num_base % RECORD_PER_RANGE
-        if type == "base":
-            page_idx = num_base % RECORD_PER_PAGE
-        else:
-            page_idx = num_tail % RECORD_PER_PAGE
+        page_range_idx = num_base // RECORD_PER_RANGE
+        page_idx = num_base // RECORD_PER_PAGE
+
         return page_range_idx, page_idx
 
     def base_write(self, columns):
-        page_range_idx, page_idx = self.get_page_location('base')
+        page_range_idx, page_idx = self.get_page_location()
         for i, value in enumerate(columns):
             id = (i, 'base', page_range_idx, page_idx)
             page = get_page(id)
@@ -83,6 +81,8 @@ class Table:
         rids = []
         for rid in self.page_directory:
             record = self.get_record(rid)
+            if record[column_index + METADATA] == target:
+                rids.append(rid)
         return rids
 
     def convert_key(self, key):
