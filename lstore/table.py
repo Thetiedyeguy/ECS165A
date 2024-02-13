@@ -98,7 +98,7 @@ class Table:
     def update_value(self, column, address, value):
         id = (column, address[2])
         page = get_page(id, address[1], False, address[3])
-        page.write(value)
+        page.write(value, address[0])
 
     def get_record(self, rid):
         record = []
