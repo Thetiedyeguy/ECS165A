@@ -121,9 +121,9 @@ class Query:
             for i in columnList:
                 if columnList[i] == None:
                     new_tail_encoding += '0'
-                else
+                else:
                     new_tail_encoding += '1'
-        else
+        else:
             last_tail = self.table.get_record(base_indirection)
             tail_indirection =  last_tail[self.table.RID_COLUMN]
             encoding =  last_tail[self.table.SCHEMA_ENCODING_COLUMN]
