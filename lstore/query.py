@@ -23,7 +23,11 @@ class Query:
     # Return False if record doesn't exist or is locked due to 2PL
     """
     def delete(self, primary_key):
-        pass
+        if primary_key not in self.table.page_directory or primary_key is None:
+            return False
+        base_address = self.table.page_directory[primary_key]
+        self.table.update_value(self.table.RID_COLUMN, base_address, None)
+        return True
     
     
     """
