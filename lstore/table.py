@@ -48,8 +48,8 @@ class Table:
     def base_write(self, columns):
         page_range_idx, page_idx = self.get_page_location()
         for i, value in enumerate(columns):
-            id = (i, 'base', page_range_idx, page_idx)
-            page = get_page(id)
+            id = (i, page_range_idx)
+            page = get_page(id, 'base')
 
             page.write(value)
             offset = page.records - 1
@@ -64,12 +64,10 @@ class Table:
     def tail_write(self, columns):
         page_range_idx, page_idx = self.get_page_location('tail')
         for i, value in enumerate(columns):
-            id = (i, 'tail', page_range_idx, page_idx)
-            page = get_page(id)
-
+            id = (i, page_range_idx)
+            page = get_page(id, 'tail')
             page.write(value)
             offset = page.records - 1
-            self.pool[id] = page
 
         rid = columns[RID_COLUMN]
         address = [offset, 'tail', page_range_idx, page_idx]
@@ -89,28 +87,32 @@ class Table:
         return key_to_rid[key]
 
     def get_value(self, column, address):
-        id = (column, address[1], address[2], address[3])
-        page = get_page(id)
-        value = page.data[i * 8:(i + 1) * 8]
+        id = (column, address[2])
+        page = get_page(id, address[1], False, address[3])
+        value = page.get_value(address[0])
         return value
 
     def update_value(self, column, address, value):
-        id = (column, address[1], address[2], address[3])
-        page = get_page(id)
-        page.data[i * 8:(i + 1) * 8] = value
-        self.pool[id] = page
+        id = (column, address[2])
+        page = get_page(id, address[1], False, address[3])
+        page.write(value)
 
     def get_record(self, rid):
         record = []
         address = self.page_directory[rid]
         for i in range(METADATA + self.num_columns):
-            result = self.get_value(i, location)
+            result = self.get_value(i, address)
             record.append(result)
         return record
 
-    def get_page(self, id):
+    def get_page(self, id, type, current = True, page = 0):
         if id in self.pool:
-            return self.pool[id]
-        page = Page()
-        self.pool[id] = page
+            pageRange = self.pool[id]
+        else:
+            pageRange = PageRange()
+            self.pool[id] = pageRange
+        if(type == 'base'):
+            page = pageRange.get_current_base()
+        else:
+            page = pageRange.get_current_tail()
         return page
