@@ -55,7 +55,7 @@ class Query:
         return rid
     
     def insert_helper_record_exists(self, columns, key):
-        key_index = self.table.index.indices[0]
+        key_index = self.table.index
         locations = key_index.locate(columns, key)
         return len(locations) > 0
     
