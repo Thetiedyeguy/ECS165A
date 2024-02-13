@@ -37,7 +37,13 @@ class PageRange:
         self.current_base_idx += 1
 
     def get_current_base(self):
-        return self.base_pages[self.current_base_idx]
+        if(current_base_idx != 0):
+            return self.base_pages[self.current_base_idx - 1]
+        else:
+            raise Exception("No base pages here")
 
     def get_current_tail(self):
-        return self.tail_pages[self.current_tail_idx]
+        if(current_tail_idx != 0):
+            return self.tail_pages[self.current_tail_idx - 1]
+        else:
+            raise Exception("No tail pages here")
