@@ -1,4 +1,4 @@
-from lstore.index import Index
+from index import Index
 from time import time
 
 INDIRECTION_COLUMN = 0
@@ -37,16 +37,19 @@ class Table:
         print("merge is happening")
         pass
 
-    def get_page_location(self):
+    def get_page_location(self, type):
         num_tail = self.updates
         num_base = self.records - num_tail
         page_range_idx = num_base // RECORD_PER_RANGE
-        page_idx = num_base // RECORD_PER_PAGE
+        if(type == 'base'):
+            page_idx = num_base // RECORD_PER_PAGE
+        else:
+            page_idx = num_tail // RECORD_PER_PAGE
 
         return page_range_idx, page_idx
 
     def base_write(self, columns):
-        page_range_idx, page_idx = self.get_page_location()
+        page_range_idx, page_idx = self.get_page_location('base')
         for i, value in enumerate(columns):
             id = (i, page_range_idx)
             page = get_page(id, 'base')
