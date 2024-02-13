@@ -1,5 +1,7 @@
 from index import Index
 from time import time
+from page import Page, PageRange
+from config import *
 
 INDIRECTION_COLUMN = 0
 RID_COLUMN = 1
@@ -52,23 +54,23 @@ class Table:
         page_range_idx, page_idx = self.get_page_location('base')
         for i, value in enumerate(columns):
             id = (i, page_range_idx)
-            page = get_page(id, 'base')
+            page = self.get_page(id, 'base')
 
             page.write(value)
-            offset = page.records - 1
+            offset = page.num_records - 1
             self.pool[id] = page
 
         rid = columns[RID_COLUMN]
         address = [offset, 'base', page_range_idx, page_idx]
         self.page_directory[rid] = address
-        self.num_records += 1
-        self.rid_to_key[columns[self.key + METADATA]] = rid
+        self.records += 1
+        self.key_to_rid[columns[self.key + METADATA]] = rid
 
     def tail_write(self, columns):
         page_range_idx, page_idx = self.get_page_location('tail')
         for i, value in enumerate(columns):
             id = (i, page_range_idx)
-            page = get_page(id, 'tail')
+            page = self.get_page(id, 'tail')
             page.write(value)
             offset = page.records - 1
 
@@ -87,17 +89,17 @@ class Table:
         return rids
 
     def convert_key(self, key):
-        return key_to_rid[key]
+        return self.key_to_rid[key]
 
     def get_value(self, column, address):
         id = (column, address[2])
-        page = get_page(id, address[1], False, address[3])
+        page = self.get_page(id, address[1], False, address[3])
         value = page.get_value(address[0])
         return value
 
     def update_value(self, column, address, value):
         id = (column, address[2])
-        page = get_page(id, address[1], False, address[3])
+        page = self.get_page(id, address[1], False, address[3])
         page.write(value, address[0])
 
     def get_record(self, rid):
@@ -116,7 +118,8 @@ class Table:
             self.pool[id] = pageRange
         if(current):
             if(type == 'base'):
-                page = pageRange.get_current_base()
+                pageRange = PageRange()
+                page = PageRange.get_current_base(pageRange)
             else:
                 page = pageRange.get_current_tail()
         else:
