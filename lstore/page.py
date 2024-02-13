@@ -21,7 +21,7 @@ class Page:
     def get_value(self, location):
         return int(self.data[location * 8:(location + 1) * 8])
 
-cclass PageRange:
+class PageRange:
     def __init__(self, num_base_pages=16):
         self.base_pages = [None for _ in range(num_base_pages)]
         self.tail_pages = [None]  # Start with a single tail page
