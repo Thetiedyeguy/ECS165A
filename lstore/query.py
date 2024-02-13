@@ -122,19 +122,33 @@ class Query:
         new_tail_encoding = ''
         new_tail_indirection = None
 
+        #non cumulative tail record encoding
+        for i, val in enumerate(columnList):
+            if columnList[i] == None:
+                new_tail_encoding += '0'
+            else:
+                new_tail_encoding += '1'
+
+        #set indirection to base record or last tail record
         if base_indirection == None:
             new_tail_indirection = rid
-            for i in columnList:
-                if columnList[i] == None:
-                    new_tail_encoding += '0'
-                else:
-                    new_tail_encoding += '1'
         else:
             last_tail = self.table.get_record(base_indirection)
-            tail_indirection =  last_tail[self.table.RID_COLUMN]
-            encoding =  last_tail[self.table.SCHEMA_ENCODING_COLUMN]
+            new_tail_indirection =  last_tail[self.table.RID_COLUMN]
 
-        pass
+        meta_data = [new_tail_indirection, new_tail_rid, int(time), new_tail_encoding]
+        meta_data.extend(columnList)
+        self.table.tail_write(meta_data)
+
+        #change base encoding if needed
+        base_encoding = base_record[self.table.SCHEMA_ENCODING_COLUMN]
+        new_base_encoding = base_encoding or new_tail_encoding
+
+        base_address = self.table.page_directory[rid]
+        self.table.update_value(self.table.INDIRECTION_COLUMN, base_address, new_tail_rid)
+        self.table.update_value(self.table.SCHEMA_ENCODING_COLUMN, base_address, new_base_encoding)
+
+        return True
     
     """
     :param start_range: int         # Start of the key range to aggregate 
