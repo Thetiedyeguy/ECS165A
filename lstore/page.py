@@ -8,9 +8,11 @@ class Page:
     def has_capacity(self):
         return self.num_records < RECORD_PER_PAGE
 
-    def write(self, value):
+    def write(self, value, location = - 1):
         if self.has_capacity():
-            self.data[self.num_records * 8:(self.num_records + 1) * 8] = int(value).to_bytes(8, byteorder = 'big')
+            if location == -1:
+                location = num_records
+            self.data[location * 8:(location + 1) * 8] = int(value).to_bytes(8, byteorder = 'big')
             self.num_records += 1
         else:
             raise Exception("Page is full")
