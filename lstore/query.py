@@ -1,8 +1,7 @@
-from lstore.table import Table, Record
-from lstore.index import Index
+from table import Table, Record
+from index import Index
 from datetime import datetime
-
-
+from config import *
 
 class Query:
     """
@@ -38,18 +37,20 @@ class Query:
     def insert(self, *columns):
 
         #Check if key exists, if it doesnt then return false
-        if self.insert_helper_record_exists(columns, columns[self.table.key]):
-            return False
+        #if self.insert_helper_record_exists(columns, self.table.key):
+            #return False
 
         #Obtain Info for meta_data
         rid = self.insert_helper_generate_rid()
-        indirection = None
+        indirection = 2**64 - 1
         time = datetime.now().strftime("%Y%m%d%H%M%S")
         schema_encoding = '0' * self.table.num_columns 
+        schema_encoding = int(schema_encoding)
 
         meta_data = [indirection, rid, int(time), schema_encoding]
-        new_record = Record(rid, columns[self.table.key], columns)
-        meta_data.extend(new_record.columns)
+        #new_record = Record(rid, columns[self.table.key], columns)
+        columns = list(columns)
+        meta_data.extend(columns)
 
         self.table.base_write(meta_data)
         return True
@@ -62,7 +63,7 @@ class Query:
     
     def insert_helper_record_exists(self, columns, key):
         key_index = self.table.index
-        locations = key_index.locate(columns, key)
+        locations = key_index.locate(columns, columns[key])
         return len(locations) > 0
     
     """
@@ -75,18 +76,18 @@ class Query:
     # Assume that select will never be called on a key that doesn't exist
     """
     
-    def select(self, search_key, search_key_index, projected_columns_index):
+    # def select(self, search_key, search_key_index, projected_columns_index):
         
-        output = []
-        matchingRIDs = []
+    #     output = []
+    #     matchingRIDs = []
     
-        matchingRIDs = table.get_rid(search_key_index, search_key)
+    #     matchingRIDs = table.get_rid(search_key_index, search_key)
     
-        if len(matchingRIDs) == 0: return []
+    #     if len(matchingRIDs) == 0: return []
     
-        for eachRID in matchingRIDs: output.append(table.get_record(eachRID))
+    #     for eachRID in matchingRIDs: output.append(table.get_record(eachRID))
     
-        return output # INCOMPLETE
+    #     return output # INCOMPLETE
     
     """
     # Read matching record with specified search key
@@ -122,33 +123,19 @@ class Query:
         new_tail_encoding = ''
         new_tail_indirection = None
 
-        #non cumulative tail record encoding
-        for i, val in enumerate(columnList):
-            if columnList[i] == None:
-                new_tail_encoding += '0'
-            else:
-                new_tail_encoding += '1'
-
-        #set indirection to base record or last tail record
         if base_indirection == None:
             new_tail_indirection = rid
+            for i in columnList:
+                if columnList[i] == None:
+                    new_tail_encoding += '0'
+                else:
+                    new_tail_encoding += '1'
         else:
             last_tail = self.table.get_record(base_indirection)
-            new_tail_indirection =  last_tail[self.table.RID_COLUMN]
+            tail_indirection =  last_tail[self.table.RID_COLUMN]
+            encoding =  last_tail[self.table.SCHEMA_ENCODING_COLUMN]
 
-        meta_data = [new_tail_indirection, new_tail_rid, int(time), new_tail_encoding]
-        meta_data.extend(columnList)
-        self.table.tail_write(meta_data)
-
-        #change base encoding if needed
-        base_encoding = base_record[self.table.SCHEMA_ENCODING_COLUMN]
-        new_base_encoding = base_encoding or new_tail_encoding
-
-        base_address = self.table.page_directory[rid]
-        self.table.update_value(self.table.INDIRECTION_COLUMN, base_address, new_tail_rid)
-        self.table.update_value(self.table.SCHEMA_ENCODING_COLUMN, base_address, new_base_encoding)
-
-        return True
+        pass
     
     """
     :param start_range: int         # Start of the key range to aggregate 
