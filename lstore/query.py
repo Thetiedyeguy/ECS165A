@@ -57,8 +57,7 @@ class Query:
 
     #Helper function: retrieves number of records current exist, +1 to obtain new rid
     def insert_helper_generate_rid(self):
-        rid = self.table.records
-        self.table.records += 1
+        rid = self.table.records + 1
         return rid
     
     def insert_helper_record_exists(self, columns, key):
