@@ -1,3 +1,4 @@
+from config import *
 
 class Page:
 
@@ -11,7 +12,7 @@ class Page:
     def write(self, value, location = - 1):
         if self.has_capacity():
             if location == -1:
-                location = num_records
+                location = self.num_records
             self.data[location * 8:(location + 1) * 8] = int(value).to_bytes(8, byteorder = 'big')
             self.num_records += 1
         else:
@@ -33,17 +34,19 @@ class PageRange:
         self.current_tail_idx += 1
 
     def make_base_page(self, idx):
-        self.base_page[idx] = Page()
+        self.base_pages[idx] = Page()
         self.current_base_idx += 1
 
     def get_current_base(self):
-        if(current_base_idx != 0):
+        if(self.current_base_idx != 0):
             return self.base_pages[self.current_base_idx - 1]
         else:
-            raise Exception("No base pages here")
+            #raise Exception("No base pages here")
+            self.make_base_page(self.current_base_idx)
+            return self.base_pages[self.current_base_idx - 1]
 
     def get_current_tail(self):
-        if(current_tail_idx != 0):
+        if(self.current_tail_idx != 0):
             return self.tail_pages[self.current_tail_idx - 1]
         else:
             raise Exception("No tail pages here")
