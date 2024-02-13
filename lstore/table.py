@@ -114,8 +114,14 @@ class Table:
         else:
             pageRange = PageRange()
             self.pool[id] = pageRange
-        if(type == 'base'):
-            page = pageRange.get_current_base()
+        if(current):
+            if(type == 'base'):
+                page = pageRange.get_current_base()
+            else:
+                page = pageRange.get_current_tail()
         else:
-            page = pageRange.get_current_tail()
+            if(type == 'base'):
+                page = pageRange.base_pages[page]
+            else:
+                page = pageRange.tail_pages[page]
         return page
