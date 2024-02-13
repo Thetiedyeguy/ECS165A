@@ -159,7 +159,23 @@ class Query:
     # Returns False if no record exists in the given range
     """
     def sum(self, start_range, end_range, aggregate_column_index):
-        pass
+        total_sum = 0;
+        column_index = aggregate_column_index + METADATA
+        for key in range(start_range, end_range + 1):
+            if key in self.table.key_to_rid.keys():
+                rid = self.table.key_to_rid[key]
+                record = self.table.get_record(rid)
+                # Record can be updated or never updated
+                # Record was updated (has tail pages)
+                if record[INDIRECTION_COLUMN] != None:
+                    tail_rid = record[INDIRECTION_COLUMN]
+                    record = self.table.get_record(tail_rid)
+                total_sum += record[column_index]
+            else:
+                # Returns False if no record exists in the given range
+                return False
+        # Returns the summation of the given range upon success
+        return total_sum
 
     
     """
