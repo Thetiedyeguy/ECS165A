@@ -86,7 +86,7 @@ class Query:
     
         for eachRID in matchingRIDs:
             for eachColumn in projected_columns_index:
-                if projected_columns_index == 1: output.append(table.get_record(eachRID))
+                if eachColumn == 1: output.append(table.get_record(eachRID))
     
         return output
     
