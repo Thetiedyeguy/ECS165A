@@ -82,8 +82,6 @@ class Query:
     
         matchingRIDs = table.get_rid(search_key_index, search_key)
     
-        if len(matchingRIDs) == 0: return []
-    
         for eachRID in matchingRIDs:
             for eachColumn in projected_columns_index:
                 if eachColumn == 1: output.append(table.get_record(eachRID))
