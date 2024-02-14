@@ -1,4 +1,4 @@
-from config import *
+from lstore.config import *
 
 class Page:
 
@@ -41,6 +41,9 @@ class PageRange:
         if(self.current_base_idx != 0):
             if self.base_pages[self.current_base_idx - 1].has_capacity():
                 return self.base_pages[self.current_base_idx - 1]
+            else:
+                self.make_base_page(self.current_base_idx)
+                return self.base_pages[self.current_base_idx - 1]
         else:
             #raise Exception("No base pages here")
             self.make_base_page(self.current_base_idx)
@@ -49,6 +52,9 @@ class PageRange:
     def get_current_tail(self):
         if(self.current_tail_idx != 0):
             if self.tail_pages[self.current_tail_idx - 1].has_capacity():
+                return self.tail_pages[self.current_tail_idx - 1]
+            else:
+                make_tail_page()
                 return self.tail_pages[self.current_tail_idx - 1]
         else:
             make_tail_page()
