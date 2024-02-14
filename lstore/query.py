@@ -107,11 +107,11 @@ class Query:
         return output
     
     def colIsChanged(self, column, schema): # select helper function
-        count = 0
-        for i in schema: 
-            if i == 1 and count == column: return True
-            count += 1
-        return False
+        if schema == 0: return False
+        if column == 3: return schema%10
+        if column == 2: return (schema/10)%10
+        if column == 1: return (schema/100)%10
+        if column == 0: return (schema/1000)%10
         
     """
     # Read matching record with specified search key
