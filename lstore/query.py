@@ -37,8 +37,8 @@ class Query:
     def insert(self, *columns):
 
         #Check if key exists, if it doesnt then return false
-        #if self.insert_helper_record_exists(columns, self.table.key):
-            #return False
+        if self.insert_helper_record_exists(columns[self.table.key]):
+            return False
 
         #Obtain Info for meta_data
         rid = self.insert_helper_generate_rid()
