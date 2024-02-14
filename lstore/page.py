@@ -25,7 +25,7 @@ class Page:
 class PageRange:
     def __init__(self, num_base_pages=16):
         self.base_pages = [None for _ in range(num_base_pages)]
-        self.tail_pages = [None]  # Start with a single tail page
+        self.tail_pages = []  # Start with a single tail page
         self.current_base_idx = 0
         self.current_tail_idx = 0
 
