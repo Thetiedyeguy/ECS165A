@@ -75,18 +75,20 @@ class Query:
     # Assume that select will never be called on a key that doesn't exist
     """
     
-    # def select(self, search_key, search_key_index, projected_columns_index):
+    def select(self, search_key, search_key_index, projected_columns_index):
         
-    #     output = []
-    #     matchingRIDs = []
+        output = []
+        matchingRIDs = []
     
-    #     matchingRIDs = table.get_rid(search_key_index, search_key)
+        matchingRIDs = table.get_rid(search_key_index, search_key)
     
-    #     if len(matchingRIDs) == 0: return []
+        if len(matchingRIDs) == 0: return []
     
-    #     for eachRID in matchingRIDs: output.append(table.get_record(eachRID))
+        for eachRID in matchingRIDs:
+            for eachColumn in projected_columns_index:
+                if projected_columns_index == 1: output.append(table.get_record(eachRID))
     
-    #     return output # INCOMPLETE
+        return output
     
     """
     # Read matching record with specified search key
