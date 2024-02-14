@@ -77,7 +77,7 @@ class Query:
         matchingRIDs = []
         recordColumns = [None for _ in range(self.table.num_columns)]
 
-        matchingRIDs.append(self.table.get_rid(search_key_index, search_key))
+        matchingRIDs = self.table.get_rid(search_key_index, search_key)
 
         for eachRID in matchingRIDs:
 
