@@ -78,6 +78,7 @@ class Query:
         recordColumns = [None for _ in range(self.table.num_columns)]
 
         matchingRIDs = self.table.get_rid(search_key_index, search_key)
+        if len(matchingRIDs) == 0: return []
 
         for eachRID in matchingRIDs:
 
