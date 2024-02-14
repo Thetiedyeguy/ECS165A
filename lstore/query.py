@@ -92,7 +92,7 @@ class Query:
                     record = self.table.get_record(eachRID)
 
                     # if the record column has been updated
-                    if (record[INDIRECTION_COLUMN] != SPECIAL_NULL and record[SCHEMA_ENCODING_COLUMN] == 1):
+                    if (record[INDIRECTION_COLUMN] != SPECIAL_NULL and record[SCHEMA_ENCODING_COLUMN][i] == 1):
                         recordTail = self.table.get_record(record[INDIRECTION_COLUMN])
                         recordColumns[i] = recordTail[METADATA + i]
 
