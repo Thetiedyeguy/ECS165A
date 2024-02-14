@@ -22,10 +22,10 @@ class Query:
     # Return False if record doesn't exist or is locked due to 2PL
     """
     def delete(self, primary_key):
-        if primary_key not in self.table.page_directory or primary_key is None:
+        if primary_key not in self.table.page_directory or primary_key is SPECIAL_NULL:
             return False
         base_address = self.table.page_directory[primary_key]
-        self.table.update_value(self.table.RID_COLUMN, base_address, None)
+        self.table.update_value(RID_COLUMN, base_address, SPECIAL_NULL)
         return True
 
 
@@ -72,47 +72,49 @@ class Query:
     # projected_columns_index: what columns to return. array of 1 or 0 values
     # returns a list of Record objects upon success
     # returns False if record locked by TPL
-    
+
         output = []
         matchingRIDs = []
         recordColumns = [None for _ in range(self.table.num_columns)]
-    
+
         matchingRIDs = self.table.get_rid(search_key_index, search_key)
         if len(matchingRIDs) == 0: return []
-    
+
         for eachRID in matchingRIDs:
-    
+
             for i in range(self.table.num_columns):
-    
+
                 # don't return unneeded columns
                 if projected_columns_index[i] == 0: recordColumns[i] = None
-    
+
                 else:
-    
+
                     record = self.table.get_record(eachRID)
                     schema = record[SCHEMA_ENCODING_COLUMN]
-    
+
                     # if the record column has been updated
                     if record[INDIRECTION_COLUMN] != SPECIAL_NULL and self.colIsChanged(i, schema):
                             recordTail = self.table.get_record(record[INDIRECTION_COLUMN])
                             recordColumns[i] = recordTail[METADATA + i]
-    
+
                     # if the record column has not been updated
                     else:
                         recordColumns[i] = record[METADATA + i]
-    
+
             record = Record(eachRID, search_key, recordColumns)
             output.append(record)
-    
+
         return output
-    
+
     def colIsChanged(self, column, schema): # select helper function
         if schema == 0: return False
         if column == 3: return schema%10
         if column == 2: return (schema/10)%10
         if column == 1: return (schema/100)%10
         if column == 0: return (schema/1000)%10
-        
+
+        # we may assume that select will never be called on a key that doesn't exist
+
     """
     # Read matching record with specified search key
     # :param search_key: the value you want to search based on
@@ -143,7 +145,7 @@ class Query:
 
         #information for metadata
         time = datetime.now().strftime("%Y%m%d%H%M%S")
-        new_tail_rid = self.table.records
+        new_tail_rid = self.table.updates
         new_tail_encoding = ''
         new_tail_indirection = None
 
@@ -193,7 +195,7 @@ class Query:
                 record = self.table.get_record(rid)
                 # Record can be updated or never updated
                 # Record was updated (has tail pages)
-                if record[INDIRECTION_COLUMN] != None:
+                if record[INDIRECTION_COLUMN] != SPECIAL_NULL:
                     tail_rid = record[INDIRECTION_COLUMN]
                     record = self.table.get_record(tail_rid)
                 total_sum += record[column_index]
