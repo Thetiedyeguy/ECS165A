@@ -56,9 +56,11 @@ class Table:
             id = (i, page_range_idx)
             page = self.get_page(id, 'base')
 
+            pageRange = self.pool[id]
             page.write(value)
-            offset = page.num_records - 1
-            self.pool[id] = page
+            pageRange[page_idx] = page
+            offset = page.records - 1
+            self.pool[id] = PageRange
 
         rid = columns[RID_COLUMN]
         address = [offset, 'base', page_range_idx, page_idx]
@@ -71,8 +73,12 @@ class Table:
         for i, value in enumerate(columns):
             id = (i, page_range_idx)
             page = self.get_page(id, 'tail')
+
+            pageRange = self.pool[id]
             page.write(value)
+            pageRange[page_idx] = page
             offset = page.records - 1
+            self.pool[id] = PageRange
 
         rid = columns[RID_COLUMN]
         address = [offset, 'tail', page_range_idx, page_idx]
@@ -118,8 +124,7 @@ class Table:
             self.pool[id] = pageRange
         if(current):
             if(type == 'base'):
-                pageRange = PageRange()
-                page = PageRange.get_current_base(pageRange)
+                page = pageRange.get_current_base()
             else:
                 page = pageRange.get_current_tail()
         else:
