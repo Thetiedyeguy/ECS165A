@@ -1,7 +1,7 @@
-from index import Index
+from lstore.index import Index
 from time import time
-from page import Page, PageRange
-from config import *
+from lstore.page import Page, PageRange
+from lstore.config import *
 
 INDIRECTION_COLUMN = 0
 RID_COLUMN = 1
@@ -47,6 +47,7 @@ class Table:
             page_idx = num_base // RECORD_PER_PAGE
         else:
             page_idx = num_tail // RECORD_PER_PAGE
+        page_idx = page_idx % PAGE_PER_RANGE
 
         return page_range_idx, page_idx
 
@@ -58,9 +59,9 @@ class Table:
 
             pageRange = self.pool[id]
             page.write(value)
-            pageRange.base_pages[page_idx] = page
-            offset = page.records - 1
-            self.pool[id] = PageRange
+            pageRange.base_pages[int(page_idx)] = page
+            offset = page.num_records - 1
+            self.pool[id] = pageRange
 
         rid = columns[RID_COLUMN]
         address = [offset, 'base', page_range_idx, page_idx]
@@ -77,8 +78,8 @@ class Table:
             pageRange = self.pool[id]
             page.write(value)
             pageRange.tail_pages[page_idx] = page
-            offset = page.records - 1
-            self.pool[id] = PageRange
+            offset = page.num_records - 1
+            self.pool[id] = pageRange
 
         rid = columns[RID_COLUMN]
         address = [offset, 'tail', page_range_idx, page_idx]
