@@ -3,10 +3,6 @@ from time import time
 from lstore.page import Page, PageRange
 from lstore.config import *
 
-INDIRECTION_COLUMN = 0
-RID_COLUMN = 1
-TIMESTAMP_COLUMN = 2
-SCHEMA_ENCODING_COLUMN = 3
 
 
 class Record:
@@ -41,7 +37,7 @@ class Table:
 
     def get_page_location(self, type):
         num_tail = self.updates
-        num_base = self.records - num_tail
+        num_base = self.records
         page_range_idx = num_base // RECORD_PER_RANGE
         if(type == 'base'):
             page_idx = num_base // RECORD_PER_PAGE
@@ -84,7 +80,6 @@ class Table:
         rid = columns[RID_COLUMN]
         address = [offset, 'tail', page_range_idx, page_idx]
         self.page_directory[rid] = address
-        self.records += 1
         self.updates += 1
 
     def get_rid(self, column_index, target):
@@ -117,7 +112,7 @@ class Table:
             record.append(result)
         return record
 
-    def get_page(self, id, type, current = True, page = 0):
+    def get_page(self, id, type, current = True, pageNumber = 0):
         if id in self.pool:
             pageRange = self.pool[id]
         else:
@@ -130,7 +125,7 @@ class Table:
                 page = pageRange.get_current_tail()
         else:
             if(type == 'base'):
-                page = pageRange.base_pages[page]
+                page = pageRange.base_pages[int(pageNumber)]
             else:
-                page = pageRange.tail_pages[page]
+                page = pageRange.tail_pages[int(pageNumber)]
         return page
