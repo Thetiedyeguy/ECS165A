@@ -65,21 +65,15 @@ class Query:
         locations = key_index.locate(self.table.key, key)
         return len(locations) > 0
     
-    """
-    # Read matching record with specified search key
-    # :param search_key: the value you want to search based on
-    # :param search_key_index: the column index you want to search based on
-    # :param projected_columns_index: what columns to return. array of 1 or 0 values.
-    # Returns a list of Record objects upon success
-    # Returns False if record locked by TPL
-    # Assume that select will never be called on a key that doesn't exist
-    """
-    
     def select(self, search_key, search_key_index, projected_columns_index):
+
+        # search_key: the value you want to search based on
+        # search_key_index: the column index you want to search based on
+        # projected_columns_index: what columns to return. array of 1 or 0 values
         
         output = []
         matchingRIDs = []
-    
+
         matchingRIDs = table.get_rid(search_key_index, search_key)
     
         for eachRID in matchingRIDs:
@@ -87,6 +81,7 @@ class Query:
                 if eachColumn == 1: output.append(table.get_record(eachRID))
     
         return output
+        # we may assume that select will never be called on a key that doesn't exist
     
     """
     # Read matching record with specified search key
