@@ -72,41 +72,47 @@ class Query:
     # projected_columns_index: what columns to return. array of 1 or 0 values
     # returns a list of Record objects upon success
     # returns False if record locked by TPL
-
+    
         output = []
         matchingRIDs = []
         recordColumns = [None for _ in range(self.table.num_columns)]
-
+    
         matchingRIDs = self.table.get_rid(search_key_index, search_key)
         if len(matchingRIDs) == 0: return []
-
+    
         for eachRID in matchingRIDs:
-
+    
             for i in range(self.table.num_columns):
-
-                 # don't return unneeded columns
+    
+                # don't return unneeded columns
                 if projected_columns_index[i] == 0: recordColumns[i] = None
-
+    
                 else:
-
+    
                     record = self.table.get_record(eachRID)
-
+                    schema = record[SCHEMA_ENCODING_COLUMN]
+    
                     # if the record column has been updated
-                    if (record[INDIRECTION_COLUMN] != SPECIAL_NULL and record[SCHEMA_ENCODING_COLUMN][i] == 1):
-                        recordTail = self.table.get_record(record[INDIRECTION_COLUMN])
-                        recordColumns[i] = recordTail[METADATA + i]
-
+                    if record[INDIRECTION_COLUMN] != SPECIAL_NULL and self.colIsChanged(i, schema):
+                            recordTail = self.table.get_record(record[INDIRECTION_COLUMN])
+                            recordColumns[i] = recordTail[METADATA + i]
+    
                     # if the record column has not been updated
                     else:
                         recordColumns[i] = record[METADATA + i]
-
+    
             record = Record(eachRID, search_key, recordColumns)
             output.append(record)
-
+    
         return output
-
-        # we may assume that select will never be called on a key that doesn't exist
-
+    
+    def colIsChanged(self, column, schema): # select helper function
+        count = 0
+        for i in schema: 
+            if i == 1 and count == column: return True
+            count += 1
+        return False
+        
     """
     # Read matching record with specified search key
     # :param search_key: the value you want to search based on
