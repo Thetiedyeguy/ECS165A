@@ -1,4 +1,4 @@
-from table import Table
+from lstore.table import Table
 
 class Database():
 
@@ -27,14 +27,14 @@ class Database():
         print("Table_Name\t|Columns\t|Key")
         for table in self.tables:
             print(f"{table.name}\t\t|{table.num_columns}\t\t|{table.key}")
-    
+
     """
     # Deletes the specified table
     """
     def drop_table(self, name):
         pass
 
-    
+
     """
     # Returns table with the passed name
     """
