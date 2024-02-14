@@ -72,37 +72,39 @@ class Query:
     # projected_columns_index: what columns to return. array of 1 or 0 values
     # returns a list of Record objects upon success
     # returns False if record locked by TPL
-    
+
         output = []
         matchingRIDs = []
-        recordColumns = [None, None, None, None]
-    
-        matchingRIDs = table.get_rid(search_key_index, search_key)
-    
+        recordColumns = [None for _ in range(self.table.num_columns)]
+
+        matchingRIDs = self.table.get_rid(search_key_index, search_key)
+
         for eachRID in matchingRIDs:
-    
+
             for i in range(self.table.num_columns):
-    
+
                  # don't return unneeded columns
                 if projected_columns_index[i] == 0: recordColumns[i] = None
-    
+
                 else:
-    
-                    record = table.get_record(eachRID)
-    
+
+                    record = self.table.get_record(eachRID)
+
                     # if the record column has been updated
                     if (record[INDIRECTION_COLUMN] != SPECIAL_NULL and record[SCHEMA_ENCODING_COLUMN]) == 1:
-                        recordTail = table.get_record(record[INDIRECTION_COLUMN])
+                        recordTail = self.table.get_record(record[INDIRECTION_COLUMN])
                         recordColumns[i] = recordTail[METADATA + i]
-    
+
                     # if the record column has not been updated
                     else:
                         recordColumns[i] = record[METADATA + i]
-    
+
             record = Record(eachRID, search_key, recordColumns)
             output.append(record)
-    
+
         return output
+
+        # we may assume that select will never be called on a key that doesn't exist
 
     """
     # Read matching record with specified search key
@@ -142,6 +144,7 @@ class Query:
         for i in range(len(columnList)):
             if columnList[i] == None:
                 new_tail_encoding += '0'
+                columnList[i] = SPECIAL_NULL
             else:
                 new_tail_encoding += '1'
 
@@ -150,19 +153,19 @@ class Query:
             new_tail_indirection = rid
         else:
             last_tail = self.table.get_record(base_indirection)
-            new_tail_indirection =  last_tail[self.table.RID_COLUMN]
+            new_tail_indirection =  last_tail[RID_COLUMN]
 
         meta_data = [new_tail_indirection, new_tail_rid, int(time), new_tail_encoding]
         meta_data.extend(columnList)
         self.table.tail_write(meta_data)
 
         #change base encoding if needed
-        base_encoding = base_record[self.table.SCHEMA_ENCODING_COLUMN]
+        base_encoding = base_record[SCHEMA_ENCODING_COLUMN]
         new_base_encoding = base_encoding or new_tail_encoding
 
         base_address = self.table.page_directory[rid]
-        self.table.update_value(self.table.INDIRECTION_COLUMN, base_address, new_tail_rid)
-        self.table.update_value(self.table.SCHEMA_ENCODING_COLUMN, base_address, new_base_encoding)
+        self.table.update_value(INDIRECTION_COLUMN, base_address, new_tail_rid)
+        self.table.update_value(SCHEMA_ENCODING_COLUMN, base_address, new_base_encoding)
 
         return True
 
