@@ -10,13 +10,15 @@ class Page:
         return self.num_records < RECORD_PER_PAGE
 
     def write(self, value, location = - 1):
-        if self.has_capacity():
-            if location == -1:
-                location = self.num_records
-            self.data[location * 8:(location + 1) * 8] = int(value).to_bytes(8, byteorder = 'big')
-            self.num_records += 1
+        if location == -1:
+            location = self.num_records
+            if self.has_capacity():
+                self.data[location * 8:(location + 1) * 8] = int(value).to_bytes(8, byteorder = 'big')
+                self.num_records += 1
+            else:
+                raise Exception("Page is full")
         else:
-            raise Exception("Page is full")
+            self.data[location * 8:(location + 1) * 8] = int(value).to_bytes(8, byteorder = 'big')
         pass
 
     def get_value(self, location):
