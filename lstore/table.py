@@ -73,7 +73,7 @@ class Table:
 
             pageRange = self.pool[id]
             page.write(value)
-            pageRange.tail_pages[page_idx] = page
+            pageRange.tail_pages[int(page_idx)] = page
             offset = page.num_records - 1
             self.pool[id] = pageRange
 
