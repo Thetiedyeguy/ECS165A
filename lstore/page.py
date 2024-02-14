@@ -49,4 +49,6 @@ class PageRange:
         if(self.current_tail_idx != 0):
             return self.tail_pages[self.current_tail_idx - 1]
         else:
-            raise Exception("No tail pages here")
+            make_tail_page()
+            return self.tail_pages[self.current_tail_idx - 1]
+            #raise Exception("No tail pages here")
