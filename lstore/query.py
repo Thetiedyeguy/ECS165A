@@ -60,9 +60,9 @@ class Query:
         rid = self.table.records + 1
         return rid
     
-    def insert_helper_record_exists(self, columns, key):
+    def insert_helper_record_exists(self, key):
         key_index = self.table.index
-        locations = key_index.locate(columns, columns[key])
+        locations = key_index.locate(self.table.key, key)
         return len(locations) > 0
     
     """
