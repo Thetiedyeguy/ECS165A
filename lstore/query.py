@@ -93,11 +93,11 @@ class Query:
                     # if the record column has been updated
                     if (record[INDIRECTION_COLUMN] != SPECIAL_NULL and record[SCHEMA_ENCODING_COLUMN]) == 1:
                         recordTail = table.get_record(record[INDIRECTION_COLUMN])
-                        recordColumns.append(recordTail[METADATA + i])
+                        recordColumns[i] = recordTail[METADATA + i]
     
                     # if the record column has not been updated
                     else:
-                        recordColumns.append(record[METADATA + i])
+                        recordColumns[i] = record[METADATA + i]
     
             record = Record(eachRID, search_key, recordColumns)
             output.append(record)
