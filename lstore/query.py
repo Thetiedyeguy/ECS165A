@@ -1,11 +1,11 @@
-from table import Table, Record
-from index import Index
+from lstore.table import Table, Record
+from lstore.index import Index
 from datetime import datetime
-from config import *
+from lstore.config import *
 
 class Query:
     """
-    # Creates a Query object that can perform different queries on the specified table 
+    # Creates a Query object that can perform different queries on the specified table
     Queries that fail must return False
     Queries that succeed should return the result or True
     Any query that crashes (due to exceptions) should return False
@@ -14,7 +14,7 @@ class Query:
         self.table = table
         pass
 
-    
+
     """
     # internal Method
     # Read a record with specified RID
@@ -27,8 +27,8 @@ class Query:
         base_address = self.table.page_directory[primary_key]
         self.table.update_value(self.table.RID_COLUMN, base_address, None)
         return True
-    
-    
+
+
     """
     # Insert a record with specified columns
     # Return True upon succesful insertion
@@ -44,7 +44,7 @@ class Query:
         rid = self.insert_helper_generate_rid()
         indirection = 2**64 - 1
         time = datetime.now().strftime("%Y%m%d%H%M%S")
-        schema_encoding = '0' * self.table.num_columns 
+        schema_encoding = '0' * self.table.num_columns
         schema_encoding = int(schema_encoding)
 
         meta_data = [indirection, rid, int(time), schema_encoding]
@@ -57,53 +57,32 @@ class Query:
 
     #Helper function: retrieves number of records current exist, +1 to obtain new rid
     def insert_helper_generate_rid(self):
-        rid = self.table.records + 1
+        rid = self.table.records + 906659671
         return rid
-    
+
     def insert_helper_record_exists(self, key):
         key_index = self.table.index
         locations = key_index.locate(self.table.key, key)
         return len(locations) > 0
-    
+
     def select(self, search_key, search_key_index, projected_columns_index):
-    # we may assume that select will never be called on a key that doesn't exist
-    # search_key: the value you want to search based on
-    # search_key_index: the column index you want to search based on
-    # projected_columns_index: what columns to return. array of 1 or 0 values
-    # returns a list of Record objects upon success
-    # returns False if record locked by TPL
-    
+
+        # search_key: the value you want to search based on
+        # search_key_index: the column index you want to search based on
+        # projected_columns_index: what columns to return. array of 1 or 0 values
+
         output = []
         matchingRIDs = []
-        recordColumns = []
-    
+
         matchingRIDs = table.get_rid(search_key_index, search_key)
-    
+
         for eachRID in matchingRIDs:
-    
-            for i in range(self.table.num_columns):
-    
-                 # don't return unneeded columns
-                if projected_columns_index[i] == 0: recordColumns[i] = None
-    
-                else:
-    
-                    record = table.get_record(eachRID)
-    
-                    # if the record column has been updated
-                    if record[INDIRECTION_COLUMN] != SPECIAL_NULL and record[SCHEMA_ENCODING_COLUMN] == 1:
-                        recordTail = table.get_record(record[INDIRECTION_COLUMN])
-                        recordColumns[i] = recordTail[METADATA + i]
-    
-                    # if the record column has not been updated
-                    else:
-                        recordColumns[i] = record[METADATA + i]
-    
-            record = Record(eachRID, search_key, recordColumns)
-            output.append(record)
-    
+            for eachColumn in projected_columns_index:
+                if eachColumn == 1: output.append(table.get_record(eachRID))
+
         return output
-    
+        # we may assume that select will never be called on a key that doesn't exist
+
     """
     # Read matching record with specified search key
     # :param search_key: the value you want to search based on
@@ -117,7 +96,7 @@ class Query:
     def select_version(self, search_key, search_key_index, projected_columns_index, relative_version):
         pass
 
-    
+
     """
     # Update a record with specified key and columns
     # Returns True if update is succesful
@@ -125,28 +104,28 @@ class Query:
     """
     def update(self, primary_key, *columns):
         columnList = list(columns)
-        rid = self.table.index.locate(self.table.key, primary_key)
-        if rid not in self.table.page_directory or rid is None: 
+        rid = self.table.key_to_rid[primary_key]
+        if rid not in self.table.page_directory or rid is SPECIAL_NULL:
             return False
         base_record = self.table.get_record(rid)
-        base_indirection = base_record[self.table.INDIRECTION_COLUMN]
+        base_indirection = base_record[INDIRECTION_COLUMN]
 
 
         #information for metadata
         time = datetime.now().strftime("%Y%m%d%H%M%S")
-        new_tail_rid = self.table.num_records
+        new_tail_rid = self.table.records
         new_tail_encoding = ''
         new_tail_indirection = None
 
         #non cumulative tail record encoding
-        for i, val in enumerate(columnList):
+        for i in range(len(columnList)):
             if columnList[i] == None:
                 new_tail_encoding += '0'
             else:
                 new_tail_encoding += '1'
 
         #set indirection to base record or last tail record
-        if base_indirection == None:
+        if base_indirection == SPECIAL_NULL:
             new_tail_indirection = rid
         else:
             last_tail = self.table.get_record(base_indirection)
@@ -165,10 +144,10 @@ class Query:
         self.table.update_value(self.table.SCHEMA_ENCODING_COLUMN, base_address, new_base_encoding)
 
         return True
-    
+
     """
-    :param start_range: int         # Start of the key range to aggregate 
-    :param end_range: int           # End of the key range to aggregate 
+    :param start_range: int         # Start of the key range to aggregate
+    :param end_range: int           # End of the key range to aggregate
     :param aggregate_columns: int  # Index of desired column to aggregate
     # this function is only called on the primary key.
     # Returns the summation of the given range upon success
@@ -193,10 +172,10 @@ class Query:
         # Returns the summation of the given range upon success
         return total_sum
 
-    
+
     """
-    :param start_range: int         # Start of the key range to aggregate 
-    :param end_range: int           # End of the key range to aggregate 
+    :param start_range: int         # Start of the key range to aggregate
+    :param end_range: int           # End of the key range to aggregate
     :param aggregate_columns: int  # Index of desired column to aggregate
     :param relative_version: the relative version of the record you need to retreive.
     # this function is only called on the primary key.
@@ -206,7 +185,7 @@ class Query:
     def sum_version(self, start_range, end_range, aggregate_column_index, relative_version):
         pass
 
-    
+
     """
     incremenets one column of the record
     this implementation should work if your select and update queries already work
