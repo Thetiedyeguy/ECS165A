@@ -20,7 +20,7 @@ class Page:
         pass
 
     def get_value(self, location):
-        return int(self.data[location * 8:(location + 1) * 8])
+        return int.from_bytes(self.data[location * 8:(location + 1) * 8], "big")
 
 class PageRange:
     def __init__(self, num_base_pages=16):
@@ -54,9 +54,9 @@ class PageRange:
             if self.tail_pages[self.current_tail_idx - 1].has_capacity():
                 return self.tail_pages[self.current_tail_idx - 1]
             else:
-                make_tail_page()
+                self.make_tail_page()
                 return self.tail_pages[self.current_tail_idx - 1]
         else:
-            make_tail_page()
+            self.make_tail_page()
             return self.tail_pages[self.current_tail_idx - 1]
             #raise Exception("No tail pages here")
