@@ -1,4 +1,4 @@
-from lstore.table import Table
+from table import Table
 
 class Database():
 
@@ -23,6 +23,10 @@ class Database():
         table = Table(name, num_columns, key_index)
         return table
 
+    def show_tables(self):
+        print("Table_Name\t|Columns\t|Key")
+        for table in self.tables:
+            print(f"{table.name}\t\t|{table.num_columns}\t\t|{table.key}")
     
     """
     # Deletes the specified table
