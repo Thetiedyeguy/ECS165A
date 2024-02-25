@@ -66,10 +66,54 @@ class Query:
         return len(locations) > 0
 
     def select(self, search_key, search_key_index, projected_columns_index):
-
-    pass
-
-        # we may assume that select will never be called on a key that doesn't exist
+    # we may assume that select will never be called on a key that doesn't exist
+    # search_key: the value you want to search based on
+    # search_key_index: the column index you want to search based on
+    # projected_columns_index: what columns to return. array of 1 or 0 values
+    # returns a list of Record objects upon success
+    # returns False if record locked by TPL
+    
+        output = []
+        matchingRIDs = []
+        recordColumns = [None for _ in range(self.table.num_columns)]
+    
+        matchingRIDs = self.table.get_rid(search_key_index, search_key)
+        if len(matchingRIDs) == 0: return []
+    
+        # professor sadoghi says to just refer to tail page here.
+    
+        for eachRID in matchingRIDs:
+    
+            for i in range(self.table.num_columns):
+    
+                # don't return unneeded columns
+                if projected_columns_index[i] == 0: recordColumns[i] = None
+    
+                else:
+    
+                    record = self.table.get_record(eachRID)
+                    schema = record[SCHEMA_ENCODING_COLUMN]
+    
+                    # if the record column has been updated
+                    if record[INDIRECTION_COLUMN] != SPECIAL_NULL and self.colIsChanged(i, schema):
+                            recordTail = self.table.get_record(record[INDIRECTION_COLUMN])
+                            recordColumns[i] = recordTail[METADATA + i]
+    
+                    # if the record column has not been updated
+                    else:
+                        recordColumns[i] = record[METADATA + i]
+    
+            record = Record(eachRID, search_key, recordColumns)
+            output.append(record)
+    
+        return output
+    
+    def colIsChanged(self, column, schema): # select helper function
+        schemaStr = str(schema)
+        count = 0
+        for digit in schemaStr:
+             if count == column: return digit
+             count += 1
 
     """
     # Read matching record with specified search key
