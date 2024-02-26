@@ -1,7 +1,6 @@
 from lstore.table import Table, Record
 from lstore.index import Index
 from datetime import datetime
-from time import process_time
 from lstore.config import *
 
 class Query:
@@ -13,22 +12,20 @@ class Query:
     """
     def __init__(self, table):
         self.table = table
-        pass
-
+        self.index = Index(table)
 
     """
     # internal Method
-    # Read a record with specified RID
+    # Read a record with specified key
     # Returns True upon succesful deletion
     # Return False if record doesn't exist or is locked due to 2PL
     """
-    def delete(self, primary_key):
-        if primary_key not in self.table.page_directory or primary_key is SPECIAL_NULL:
-            return False
-        base_address = self.table.page_directory[primary_key]
-        self.table.update_value(RID_COLUMN, base_address, SPECIAL_NULL)
-        return True
 
+    def delete(self, key):
+        rid = self.table.key_RID[key]
+        del self.table.key_RID[key]
+        del self.table.page_directory[rid]
+        return True
 
     """
     # Insert a record with specified columns
@@ -36,71 +33,106 @@ class Query:
     # Returns False if insert fails for whatever reason
     """
     def insert(self, *columns):
+        key = columns[self.table.key_column]
+        if key in self.table.key_RID.keys():
+            return False;
 
-        #Check if key exists, if it doesnt then return false
-        if self.insert_helper_record_exists(columns[self.table.key]):
-            return False
-
-        #Obtain Info for meta_data
-        rid = self.insert_helper_generate_rid()
-        indirection = SPECIAL_NULL
-        time = datetime.now().strftime("%Y%m%d%H%M%S")
+        self.table.new_record.acquire()
         schema_encoding = '0' * self.table.num_columns
-        schema_encoding = int(schema_encoding)
-
-        meta_data = [indirection, rid, int(time), schema_encoding, rid]
-        #new_record = Record(rid, columns[self.table.key], columns)
+        indirection = MAX_INT
+        rid = self.table.num_records
+        time = datetime.now().strftime("%Y%m%d%H%M%S")
+        base_id = rid
+        meta_data = [rid, int(time), schema_encoding, indirection, base_id]
         columns = list(columns)
         meta_data.extend(columns)
 
+        # self.table.lock_manager[key].acquire_wlock()
         self.table.base_write(meta_data)
+        # self.table.lock_manager[key].release_wlock()
+        self.table.new_record.release()
         return True
 
-    #Helper function: retrieves number of records current exist, +1 to obtain new rid
-    def insert_helper_generate_rid(self):
-        rid = self.table.records + 906659671
-        return rid
 
-    def insert_helper_record_exists(self, key):
-        key_index = self.table.index
-        locations = key_index.locate(self.table.key, key)
-        return len(locations) > 0
+    """
+    # Read matching record with specified search key
+    # :param search_key: the value you want to search based on
+    # :param search_key_index: the column index you want to search based on
+    # :param projected_columns_index: what columns to return. array of 1 or 0 values.
+    # Returns a list of Record objects upon success
+    # Returns False if record locked by TPL
+    # Assume that select will never be called on a key that doesn't exist
+    """
+    def find_column_bufferID(self, column):
+        buffer_rid = []
+        num_base = self.table.num_records - self.table.num_updates
+        num_page_range = num_base % RECORD_PER_PAGERANGE + 1
+        num_base_page = num_base % RECORD_PER_PAGE + 1
+        for page_range in range(num_page_range):
+            for base_page in range(num_base_page):
+                buffer_id = (self.table.table_path, "base", str(column), str(page_range), str(base_page))
+                buffer_rid.append(buffer_id)
+
+        return buffer_rid
+
 
     def select(self, search_key, search_key_index, projected_columns_index):
-        rids = []
         records = []
         column = []
+        rids = []
 
-
-        if search_key_index == METADATA:
+        if search_key_index == self.table.key_column:
             if search_key in self.table.key_RID.keys():
-                rids.append(self.table.key_to_rid[search_key])
+                rids.append(self.table.key_RID[search_key])
+        elif self.table.index.has_index(search_key_index):
+            rids = self.table.index.locate(search_key_index, search_key)
         else:
-            rids.extend(self.table.get_rid(search_key_index, search_key))
+            rids = self.table.find_value_rid(search_key_index, search_key)
 
+        if len(rids) == 0:
+                return []
 
         for rid in rids:
-            record = self.table.get_record(rid)
-            # if(rid != record[RID_COLUMN]):
-                # print(rid, " ", record)
-            column = record[METADATA:METADATA + self.table.num_columns + 1]
+            result = self.table.find_record(rid)
+            # print(result)
+            column = result[DEFAULT_PAGE:DEFAULT_PAGE + self.table.num_columns + 1]
 
-            # print(record[INDIRECTION_COLUMN])
+            # if record has update record
+            if result[INDIRECTION] != MAX_INT:
+            # use indirection of base record to find tail record
+                rid_tail = result[INDIRECTION]
 
-            if record[INDIRECTION_COLUMN] != SPECIAL_NULL:
-                rid_tail = record[INDIRECTION_COLUMN]
+                result_tail = self.table.find_record(rid_tail)
+                updated_column = result_tail[DEFAULT_PAGE:DEFAULT_PAGE + self.table.num_columns + 1]
+                encoding = result[SCHEMA_ENCODING]
+                encoding = self.find_changed_col(encoding)
+                for i, value in enumerate(encoding):
+                    if value == 1:
+                        column[i] = updated_column[i]
 
-                record_tail = self.table.get_record(rid_tail)
-                column = record_tail[METADATA:METADATA + self.table.num_columns + 1]
-                column[self.table.key] = record[METADATA + self.table.key]
-
+            # take columns that is requested
+            for i in range(self.table.num_columns):
+                if projected_columns_index[i] == 0:
+                    column[i] = None
+            
             record = Record(rid, search_key, column)
             records.append(record)
 
-
         return records
 
-        # we may assume that select will never be called on a key that doesn't exist
+    # helper function to find which columns have updated
+    def find_changed_col(self, encoding):
+        count = self.table.num_columns
+        result = [0 for _ in range(count)]
+        if encoding == 0:
+            return result
+        while encoding != 0:
+            if encoding % 10 == 1:
+                result[count - 1] = 1
+            encoding = encoding // 10
+            count -= 1
+        return result
+
 
     """
     # Read matching record with specified search key
@@ -122,61 +154,65 @@ class Query:
     # Returns False if no records exist with given key or if the target record cannot be accessed due to 2PL locking
     """
     def update(self, primary_key, *columns):
-        columnList = list(columns)
-        if primary_key not in self.table.key_to_rid.keys():
+
+        columns = list(columns)
+
+        if primary_key not in self.table.key_RID.keys():
             return False
-            # print("aha")
-        rid = self.table.key_to_rid[primary_key]
-        if rid not in self.table.page_directory or rid is SPECIAL_NULL:
+        if columns[self.table.key_column] in self.table.key_RID.keys():
+            return False
+        if columns[self.table.key_column] != None:
             return False
 
-        base_record = self.table.get_record(rid)
-        base_rid = base_record[RID_COLUMN]
-        base_indirection = base_record[INDIRECTION_COLUMN]
-
-
-        #information for metadata
+        self.table.update_record.acquire()
+        tail_rid = self.table.num_records
         time = datetime.now().strftime("%Y%m%d%H%M%S")
-        new_tail_rid = self.table.updates
-        new_tail_encoding = ''
-        new_tail_indirection = None
+        rid = self.table.key_RID[primary_key]
+        base_id = rid
+        result = self.table.find_record(rid)
+        indirection = result[INDIRECTION]
+        new_encoding = ''
+        location_base = self.table.page_directory[rid]
 
-        #set indirection to base record or last tail record
-        if base_indirection == SPECIAL_NULL:
-            new_tail_indirection = rid
-            for i in range(len(columnList)):
-                if columnList[i] == None:
-                    columnList[i] = base_record[i + METADATA]
-                    new_tail_encoding += '0'
+        # first time update
+        if indirection == MAX_INT:
+            tail_indirect = rid
+            for i, value in enumerate(columns):
+                if value == None:
+                    new_encoding += '0'
+                    columns[i] = MAX_INT
                 else:
-                    new_tail_encoding += '1'
+                    new_encoding += '1'
         else:
-            last_tail = self.table.get_record(base_indirection)
-            for i in range(len(columnList)):
-                if columnList[i] == None:
-                    columnList[i] = last_tail[i + METADATA]
-                    if (last_tail[SCHEMA_ENCODING_COLUMN] // (10 ** i)) % 10:
-                        new_tail_encoding += '1'
-                    else:
-                        new_tail_encoding += '0'
+            latest_tail = self.table.find_record(indirection)
+            tail_indirect = latest_tail[RID]
+            encoding = latest_tail[SCHEMA_ENCODING]
+            encoding = self.find_changed_col(encoding)
+            for i, value in enumerate(encoding):
+                if columns[i] != None:
+                    new_encoding += '1'
                 else:
-                    new_tail_encoding += '1'
-            new_tail_indirection =  last_tail[RID_COLUMN]
+                    columns[i] = latest_tail[i + DEFAULT_PAGE]
+                    if latest_tail[i + DEFAULT_PAGE] != MAX_INT:
+                        new_encoding += '1'
+                    else:
+                        new_encoding += '0'
 
-        meta_data = [new_tail_indirection, new_tail_rid, int(time), new_tail_encoding, base_rid]
-        columnList[self.table.key] = SPECIAL_NULL
-        meta_data.extend(columnList)
+        # update base record
+        self.table.update_value(INDIRECTION, location_base, tail_rid)
+        self.table.update_value(SCHEMA_ENCODING, location_base, new_encoding)
+
+        meta_data = [tail_rid, int(time), new_encoding, tail_indirect, base_id]
+        meta_data.extend(columns)
         self.table.tail_write(meta_data)
 
-        #change base encoding if needed
-        base_encoding = base_record[SCHEMA_ENCODING_COLUMN]
-        new_base_encoding = base_encoding or new_tail_encoding
+        self.table.update_record.release()
 
-        base_address = self.table.page_directory[rid]
-        self.table.update_value(INDIRECTION_COLUMN, base_address, new_tail_rid)
-        self.table.update_value(SCHEMA_ENCODING_COLUMN, base_address, new_base_encoding)
-
+        # for merge
+        # location = self.table.page_directory[tail_rid]
+        # self.table.merge_trigger(location)
         return True
+
 
     """
     :param start_range: int         # Start of the key range to aggregate
@@ -187,22 +223,29 @@ class Query:
     # Returns False if no record exists in the given range
     """
     def sum(self, start_range, end_range, aggregate_column_index):
-        total_sum = 0;
-        column_index = aggregate_column_index + METADATA
+        total_sum = 0
+        column_index = aggregate_column_index + DEFAULT_PAGE
         for key in range(start_range, end_range + 1):
-            if key in self.table.key_to_rid.keys():
-                rid = self.table.key_to_rid[key]
-                record = self.table.get_record(rid)
-                # Record can be updated or never updated
-                # Record was updated (has tail pages)
-                if record[INDIRECTION_COLUMN] != SPECIAL_NULL:
-                    tail_rid = record[INDIRECTION_COLUMN]
-                    record = self.table.get_record(tail_rid)
-                total_sum += record[column_index]
-            else:
-                # Returns False if no record exists in the given range
-                return False
-        # Returns the summation of the given range upon success
+            if key in self.table.key_RID.keys():
+                rid = self.table.key_RID[key]
+                record = self.table.find_record(rid)
+                # never been updated
+                if record[INDIRECTION] == MAX_INT:
+                    total_sum += record[column_index]
+                else:
+                # have been updated
+                    tail_rid = record[INDIRECTION]
+                    tail_record = self.table.find_record(tail_rid)
+                    updated_column = tail_record[DEFAULT_PAGE:DEFAULT_PAGE + self.table.num_columns + 1]
+                    encoding = tail_record[SCHEMA_ENCODING]
+                    encoding = self.find_changed_col(encoding)
+                    # print(updated_column)
+                    # print(tail_record)
+                    if encoding[aggregate_column_index] == 1:
+                        total_sum += updated_column[aggregate_column_index]
+                    else:
+                        total_sum += record[column_index]
+
         return total_sum
 
 
@@ -228,7 +271,7 @@ class Query:
     # Returns False if no record matches key or if target record is locked by 2PL.
     """
     def increment(self, key, column):
-        r = self.select(key, self.table.key, [1] * self.table.num_columns)[0]
+        r = self.select(key, self.table.key_column, [1] * self.table.num_columns)[0]
         if r is not False:
             updated_columns = [None] * self.table.num_columns
             updated_columns[column] = r[column] + 1
