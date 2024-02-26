@@ -48,7 +48,7 @@ class Query:
         schema_encoding = '0' * self.table.num_columns
         schema_encoding = int(schema_encoding)
 
-        meta_data = [indirection, rid, int(time), schema_encoding]
+        meta_data = [indirection, rid, int(time), schema_encoding, rid]
         #new_record = Record(rid, columns[self.table.key], columns)
         columns = list(columns)
         meta_data.extend(columns)
@@ -153,6 +153,7 @@ class Query:
             return False
 
         base_record = self.table.get_record(rid)
+        base_rid = base_record[RID_COLUMN]
         base_indirection = base_record[INDIRECTION_COLUMN]
 
 
@@ -183,7 +184,7 @@ class Query:
                     columnList[i] = last_tail[i + METADATA]
             new_tail_indirection =  last_tail[RID_COLUMN]
 
-        meta_data = [new_tail_indirection, new_tail_rid, int(time), new_tail_encoding]
+        meta_data = [new_tail_indirection, new_tail_rid, int(time), new_tail_encoding, base_rid]
         meta_data.extend(columnList)
         self.table.tail_write(meta_data)
 
