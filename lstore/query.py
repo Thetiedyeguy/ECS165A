@@ -1,6 +1,7 @@
 from lstore.table import Table, Record
 from lstore.index import Index
 from datetime import datetime
+from time import process_time
 from lstore.config import *
 
 class Query:
@@ -42,7 +43,7 @@ class Query:
 
         #Obtain Info for meta_data
         rid = self.insert_helper_generate_rid()
-        indirection = 2**64 - 1
+        indirection = SPECIAL_NULL
         time = datetime.now().strftime("%Y%m%d%H%M%S")
         schema_encoding = '0' * self.table.num_columns
         schema_encoding = int(schema_encoding)
@@ -66,54 +67,62 @@ class Query:
         return len(locations) > 0
 
     def select(self, search_key, search_key_index, projected_columns_index):
-    # we may assume that select will never be called on a key that doesn't exist
-    # search_key: the value you want to search based on
-    # search_key_index: the column index you want to search based on
-    # projected_columns_index: what columns to return. array of 1 or 0 values
-    # returns a list of Record objects upon success
-    # returns False if record locked by TPL
-    
-        output = []
-        matchingRIDs = []
-        recordColumns = [None for _ in range(self.table.num_columns)]
-    
-        matchingRIDs = self.table.get_rid(search_key_index, search_key)
-        if len(matchingRIDs) == 0: return []
-    
-        # professor sadoghi says to just refer to tail page here.
-    
-        for eachRID in matchingRIDs:
-    
+        rids = []
+        records = []
+        column = []
+
+        time_0 = process_time()
+
+        if search_key_index == METADATA:
+            if search_key in self.table.key_RID.keys():
+                rids.append(self.table.key_to_rid[serach_key])
+        else:
+            rids.extend(self.table.get_rid(search_key_index, search_key))
+
+        time_1 = process_time()
+
+        self.table.time[0] += time_1 - time_0
+
+        # print("First bit:  \t\t\t", self.table.time[0])
+
+        for rid in rids:
+            record = self.table.get_record(rid)
+            # if(rid != record[RID_COLUMN]):
+                # print(rid, " ", record)
+            column = record[METADATA:METADATA + self.table.num_columns + 1]
+
+            if record[INDIRECTION_COLUMN] != SPECIAL_NULL:
+                rid_tail = record[INDIRECTION_COLUMN]
+
+                record_tail = self.table.get_record(rid_tail)
+                updated_column = record_tail[METADATA:METADATA + self.table.num_columns + 1]
+                encoding = record[SCHEMA_ENCODING_COLUMN]
+                count = self.table.num_columns
+                result = [0 for _ in range(count)]
+                while encoding != 0:
+                    if encoding % 10 == 1:
+                        result[count - 1] = 1
+                    encoding = encoding // 10
+                    count -= 1
+                for i, value in enumerate(result):
+                    if value == 1:
+                        column[i] = updated_column[i]
+
             for i in range(self.table.num_columns):
-    
-                # don't return unneeded columns
-                if projected_columns_index[i] == 0: recordColumns[i] = None
-    
-                else:
-    
-                    record = self.table.get_record(eachRID)
-                    schema = record[SCHEMA_ENCODING_COLUMN]
-    
-                    # if the record column has been updated
-                    if record[INDIRECTION_COLUMN] != SPECIAL_NULL and self.colIsChanged(i, schema):
-                            recordTail = self.table.get_record(record[INDIRECTION_COLUMN])
-                            recordColumns[i] = recordTail[METADATA + i]
-    
-                    # if the record column has not been updated
-                    else:
-                        recordColumns[i] = record[METADATA + i]
-    
-            record = Record(eachRID, search_key, recordColumns)
-            output.append(record)
-    
-        return output
-    
-    def colIsChanged(self, column, schema): # select helper function
-        schemaStr = str(schema)
-        count = 0
-        for digit in schemaStr:
-             if count == column: return digit
-             count += 1
+                if projected_columns_index[i] == 0:
+                    column[i] = None
+            record = Record(rid, search_key, column)
+            records.append(record)
+
+            time_0 = process_time()
+
+            self.table.time[1] += time_0 - time_1
+
+            # print("Second bit:  \t\t\t", self.table.time[1])
+
+        return records
+
+        # we may assume that select will never be called on a key that doesn't exist
 
     """
     # Read matching record with specified search key
@@ -136,9 +145,13 @@ class Query:
     """
     def update(self, primary_key, *columns):
         columnList = list(columns)
+        if primary_key not in self.table.key_to_rid.keys():
+            return False
+            # print("aha")
         rid = self.table.key_to_rid[primary_key]
         if rid not in self.table.page_directory or rid is SPECIAL_NULL:
             return False
+
         base_record = self.table.get_record(rid)
         base_indirection = base_record[INDIRECTION_COLUMN]
 
@@ -160,8 +173,14 @@ class Query:
         #set indirection to base record or last tail record
         if base_indirection == SPECIAL_NULL:
             new_tail_indirection = rid
+            for i in range(len(columnList)):
+                if columnList[i] == None:
+                    columnList[i] = base_record[i + METADATA]
         else:
             last_tail = self.table.get_record(base_indirection)
+            for i in range(len(columnList)):
+                if columnList[i] == None:
+                    columnList[i] = last_tail[i + METADATA]
             new_tail_indirection =  last_tail[RID_COLUMN]
 
         meta_data = [new_tail_indirection, new_tail_rid, int(time), new_tail_encoding]
