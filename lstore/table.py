@@ -67,7 +67,7 @@ class Table:
         self.key_to_rid[columns[self.key + METADATA]] = rid
 
     def tail_write(self, columns):
-        page_range_idx, page_idx = self.get_page_location(columns[0])
+        page_range_idx, page_idx = self.get_page_location(columns[BASE_RID_COLUMN])
         for i, value in enumerate(columns):
             pageRange = self.pool[page_range_idx]
             page = self.get_page(page_range_idx, i, 'tail')
