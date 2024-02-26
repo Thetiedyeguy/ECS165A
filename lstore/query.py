@@ -75,7 +75,7 @@ class Query:
 
         if search_key_index == METADATA:
             if search_key in self.table.key_RID.keys():
-                rids.append(self.table.key_to_rid[serach_key])
+                rids.append(self.table.key_to_rid[search_key])
         else:
             rids.extend(self.table.get_rid(search_key_index, search_key))
 
