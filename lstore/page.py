@@ -25,40 +25,41 @@ class Page:
         return int.from_bytes(self.data[location * 8:(location + 1) * 8], "big")
 
 class PageRange:
-    def __init__(self, num_base_pages=16):
-        self.base_pages = [None for _ in range(num_base_pages)]
+    def __init__(self, num_columns, num_base_pages = 16):
+        self.num_columns = num_columns
+        self.base_pages = [[None for i in range(self.num_columns)] for _ in range(num_base_pages)] # 16 base pages with a physical page for each row
         self.tail_pages = []  # Start with a single tail page
         self.current_base_idx = 0
         self.current_tail_idx = 0
 
     def make_tail_page(self):
-        self.tail_pages.append(Page())
+        self.tail_pages.append([Page() for _ in range(self.num_columns)])
         self.current_tail_idx += 1
 
     def make_base_page(self, idx):
-        self.base_pages[idx] = Page()
+        self.base_pages[idx] = [Page() for _ in range(self.num_columns)]
         self.current_base_idx += 1
 
-    def get_current_base(self):
+    def get_current_base(self, column):
         if(self.current_base_idx != 0):
-            if self.base_pages[self.current_base_idx - 1].has_capacity():
-                return self.base_pages[self.current_base_idx - 1]
+            if self.base_pages[self.current_base_idx - 1][column].has_capacity():
+                return self.base_pages[self.current_base_idx - 1][column]
             else:
                 self.make_base_page(self.current_base_idx)
-                return self.base_pages[self.current_base_idx - 1]
+                return self.base_pages[self.current_base_idx - 1][column]
         else:
             #raise Exception("No base pages here")
             self.make_base_page(self.current_base_idx)
-            return self.base_pages[self.current_base_idx - 1]
+            return self.base_pages[self.current_base_idx - 1][column]
 
-    def get_current_tail(self):
+    def get_current_tail(self, column):
         if(self.current_tail_idx != 0):
-            if self.tail_pages[self.current_tail_idx - 1].has_capacity():
-                return self.tail_pages[self.current_tail_idx - 1]
+            if self.tail_pages[self.current_tail_idx - 1][column].has_capacity():
+                return self.tail_pages[self.current_tail_idx - 1][column]
             else:
                 self.make_tail_page()
-                return self.tail_pages[self.current_tail_idx - 1]
+                return self.tail_pages[self.current_tail_idx - 1][column]
         else:
             self.make_tail_page()
-            return self.tail_pages[self.current_tail_idx - 1]
+            return self.tail_pages[self.current_tail_idx - 1][column]
             #raise Exception("No tail pages here")
