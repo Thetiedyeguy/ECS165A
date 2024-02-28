@@ -82,6 +82,12 @@ class Database():
     # Deletes the specified table
     """
     def drop_table(self, name):
+        for i in range(len(self.tables)):
+            if(self.tables[i].name == name):
+                new_tables = tables[:i]
+                new_tables.extend(tables[i+1:])
+                del tables[i]
+                tables = new_tables
         pass
 
 
