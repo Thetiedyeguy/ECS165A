@@ -214,7 +214,8 @@ class Table:
             pageRange.idx = page_range_idx
             self.lru.accessed(pageRange)
         elif os.path.isfile(path):
-            self.pool[page_range_idx] = self.lru.read_page(path)
+            pageRange = self.lru.read_page(path)
+            self.pool[page_range_idx] = pageRange
             self.lru.created(pageRange)
         else:
             pageRange = PageRange(self.num_columns + METADATA)
@@ -304,10 +305,9 @@ class LRU():
                 current_byte += RECORD_SIZE
                 page.tps = int.from_bytes(fileContent[current_byte:current_byte + RECORD_SIZE])
                 current_byte += RECORD_SIZE
-                page.data = fileContent[current_byte:current_byte + PAGE_SIZE]
+                page.data = bytearray(fileContent[current_byte:current_byte + PAGE_SIZE])
                 current_byte += PAGE_SIZE
                 pageRange.base_pages[i][j] = page
-            self.show_page(pageRange.base_pages[i])
 
         for i in range(current_tail_idx):
             pageRange.make_tail_page()
@@ -317,10 +317,9 @@ class LRU():
                 current_byte += RECORD_SIZE
                 page.tps = int.from_bytes(fileContent[current_byte:current_byte + RECORD_SIZE])
                 current_byte += RECORD_SIZE
-                page.data = fileContent[current_byte:current_byte + PAGE_SIZE]
+                page.data = bytearray(fileContent[current_byte:current_byte + PAGE_SIZE])
                 current_byte += PAGE_SIZE
                 pageRange.tail_pages[i][j] = page
-            self.show_page(pageRange.tail_pages[i])
         f.close()
         return pageRange
 
