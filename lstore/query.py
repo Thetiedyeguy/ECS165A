@@ -222,22 +222,18 @@ class Query:
     # Returns False if no record exists in the given range
     """
     def sum(self, start_range, end_range, aggregate_column_index):
-        total_sum = 0;
+        total_sum = 0
+        no_record = True
         column_index = aggregate_column_index + METADATA
         for key in range(start_range, end_range + 1):
             if key in self.table.key_to_rid.keys():
-                rid = self.table.key_to_rid[key]
-                record = self.table.get_record(rid)
-                # Record can be updated or never updated
-                # Record was updated (has tail pages)
-                if record[INDIRECTION_COLUMN] != SPECIAL_NULL:
-                    tail_rid = record[INDIRECTION_COLUMN]
-                    record = self.table.get_record(tail_rid)
-                total_sum += record[column_index]
-            else:
-                # Returns False if no record exists in the given range
-                return False
-        # Returns the summation of the given range upon success
+                record = self.select(key, self.table.key, [1 for i in range(self.table.num_columns)])[0]
+                value = record.columns[aggregate_column_index]
+                if value != None:
+                    total_sum += value
+                no_record = False
+        if no_record:
+            return False
         return total_sum
 
 
@@ -251,7 +247,19 @@ class Query:
     # Returns False if no record exists in the given range
     """
     def sum_version(self, start_range, end_range, aggregate_column_index, relative_version):
-        pass
+        total_sum = 0
+        no_record = True
+        column_index = aggregate_column_index + METADATA
+        for key in range(start_range, end_range + 1):
+            if key in self.table.key_to_rid.keys():
+                record = self.select_version(key, self.table.key, [1 for i in range(self.table.num_columns)], relative_version)[0]
+                value = record.columns[aggregate_column_index]
+                if value != None:
+                    total_sum += value
+                no_record = False
+        if no_record:
+            return False
+        return total_sum
 
 
     """
