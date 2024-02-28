@@ -34,7 +34,17 @@ class Table:
         self.path = path
         self.lru = LRU(self.path, self.name, self.num_columns)
 
-    def __merge(self):
+    def __merge(self, page_range_idx):
+        old_pageRange = self.pool[page_range_idx]
+        old_pageRange.pinned += 1
+        new_pageRange = PageRange(self.num_columns)
+        self.pool[page_range_idx] = new_pageRange
+        new_pageRange.idx = page_range_idx
+        new_pageRange.pinned += 1
+        begginning_idx = page_range_idx * RECORD_PER_RANGE
+        for i in range(RECORD_PER_RANGE):
+            for i in range(self.num_columns):
+                print("placeholder")
         pass
 
     def open(self):
@@ -151,6 +161,7 @@ class Table:
             page = self.get_page(page_range_idx, i, 'base')
 
             pageRange = self.pool[page_range_idx]
+            pageRange.dirty = True
             page.write(value)
             pageRange.base_pages[int(page_idx)][i] = page
             self.pool[page_range_idx] = pageRange
@@ -166,6 +177,7 @@ class Table:
         page_range_idx, page_idx = self.get_page_location(columns[BASE_RID_COLUMN])
         for i, value in enumerate(columns):
             pageRange = self.pool[page_range_idx]
+            pageRange.dirty = True
             page = self.get_page(page_range_idx, i, 'tail')
 
             page.write(value)
@@ -219,7 +231,6 @@ class Table:
             self.lru.created(pageRange)
         else:
             pageRange = PageRange(self.num_columns + METADATA)
-            pageRange.set_all_dirty()
             pageRange.idx = page_range_idx
             self.pool[page_range_idx] = pageRange
             self.lru.created(pageRange)
@@ -263,8 +274,9 @@ class LRU():
             self.delete()
 
     def delete(self):
-        path = self.path + '/' + self.table_name + '/' + str(self.oldest.idx)
-        self.write_page(path, self.oldest)
+        if self.oldest.dirty:
+            path = self.path + '/' + self.table_name + '/' + str(self.oldest.idx)
+            self.write_page(path, self.oldest)
         if self.oldest.next != None:
             self.oldest.next.prev = None
             temp = self.oldest.next
@@ -307,6 +319,7 @@ class LRU():
                 current_byte += RECORD_SIZE
                 page.data = bytearray(fileContent[current_byte:current_byte + PAGE_SIZE])
                 current_byte += PAGE_SIZE
+                page.dirty = False
                 pageRange.base_pages[i][j] = page
 
         for i in range(current_tail_idx):
@@ -321,6 +334,7 @@ class LRU():
                 current_byte += PAGE_SIZE
                 pageRange.tail_pages[i][j] = page
         f.close()
+        pageRange.dirty = False
         return pageRange
 
     def write_page(self, path, pageRange):
@@ -355,7 +369,7 @@ class LRU():
         f = open(path, 'wb')
         f.write(data)
         f.close()
-        return pageRange
+
 
     def show_page(self, page):
         for i in range(512):
