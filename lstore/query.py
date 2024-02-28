@@ -25,7 +25,7 @@ class Query:
     def delete(self, primary_key):
         if primary_key not in self.table.page_directory or primary_key is SPECIAL_NULL:
             return False
-        base_address = self.table.page_directory[primary_key]
+        base_address = self.table.page_directory[rid]
         self.table.update_value(RID_COLUMN, base_address, SPECIAL_NULL)
         return True
 
@@ -70,11 +70,8 @@ class Query:
         rids = []
         records = []
         column = []
-
-
-        if search_key_index == METADATA:
-            if search_key in self.table.key_RID.keys():
-                rids.append(self.table.key_to_rid[search_key])
+        if search_key_index == self.table.key:
+            rids.append(self.table.key_to_rid[search_key])
         else:
             rids.extend(self.table.get_rid(search_key_index, search_key))
 
@@ -99,7 +96,6 @@ class Query:
             record = Record(rid, search_key, column)
             records.append(record)
 
-
         return records
 
         # we may assume that select will never be called on a key that doesn't exist
@@ -115,7 +111,36 @@ class Query:
     # Assume that select will never be called on a key that doesn't exist
     """
     def select_version(self, search_key, search_key_index, projected_columns_index, relative_version):
-        pass
+        rids = []
+        records = []
+        column = []
+        if search_key_index == self.table.key:
+            rids.append(self.table.key_to_rid[search_key])
+        else:
+            rids.extend(self.table.get_rid(search_key_index, search_key))
+
+
+        for rid in rids:
+            record = self.table.get_record(rid)
+            # print("record:", record)
+            # if(rid != record[RID_COLUMN]):
+                # print(rid, " ", record)
+            key = record[METADATA + self.table.key]
+            # print(record[INDIRECTION_COLUMN])
+            relative_version = (relative_version * -1) + 1
+            for i in range(relative_version):
+                if record[INDIRECTION_COLUMN] != SPECIAL_NULL and record[INDIRECTION_COLUMN] != rid:
+                    rid_tail = record[INDIRECTION_COLUMN]
+
+                    record = self.table.get_record(rid_tail)
+                    # print("tail record:", record_tail)
+            column = record[METADATA:METADATA + self.table.num_columns + 1]
+            column[self.table.key] = key
+
+            record = Record(rid, search_key, column)
+            records.append(record)
+
+        return records
 
 
     """
