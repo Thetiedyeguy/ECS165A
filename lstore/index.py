@@ -70,11 +70,29 @@ class Index:
     """
 
     def create_index(self, column_number):
-        pass
+        if column_number >= len(self.indices):
+            print("Column index out of range")
+            return
+        if not self.indices[column_number]:
+            self.indices[column_number] = self.Node()
 
     """
     # optional: Drop index of specific column
     """
 
     def drop_index(self, column_number):
-        pass
+        if column_number >= len(self.indices):
+            print("Column index out of range")
+            return
+        self.indices[column_number] = None
+
+
+    def push_index(self, columns, rid):
+        for i in range(1, self.table.num_columns):
+            if self.indices[i] is None:
+                self.create_index(i)
+            if columns[i] not in self.indices[i]:
+                self.indices[i][columns[i]]= [rid]
+            else:
+                self.indices[i][columns[i]].append(rid)
+            self.column_num[columns[i]] = i
