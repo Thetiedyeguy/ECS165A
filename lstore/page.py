@@ -5,6 +5,7 @@ class Page:
     def __init__(self):
         self.num_records = 0
         self.data = bytearray(4096)
+        self.tps = 0
 
     def has_capacity(self):
         return self.num_records < RECORD_PER_PAGE
@@ -27,17 +28,31 @@ class Page:
 class PageRange:
     def __init__(self, num_columns, num_base_pages = 16):
         self.num_columns = num_columns
+        self.num_base_pages = num_base_pages
         self.base_pages = [[None for i in range(self.num_columns)] for _ in range(num_base_pages)] # 16 base pages with a physical page for each row
         self.tail_pages = []  # Start with a single tail page
+        self.dirty = [False for i in range (self.num_base_pages)]
         self.current_base_idx = 0
         self.current_tail_idx = 0
+        self.next = None
+        self.prev = None
+        self.idx = None
+
+    def set_dirty(self, idx):
+        self.dirty[idx] = True
+
+    def set_all_dirty(self):
+        for i in range(self.num_base_pages):
+            self.set_dirty(i)
 
     def make_tail_page(self):
         self.tail_pages.append([Page() for _ in range(self.num_columns)])
+        self.set_dirty(self.current_tail_idx)
         self.current_tail_idx += 1
 
     def make_base_page(self, idx):
         self.base_pages[idx] = [Page() for _ in range(self.num_columns)]
+        self.set_dirty(self.current_base_idx)
         self.current_base_idx += 1
 
     def get_current_base(self, column):
