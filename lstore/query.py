@@ -125,17 +125,21 @@ class Query:
             # print("record:", record)
             # if(rid != record[RID_COLUMN]):
                 # print(rid, " ", record)
-            key = record[METADATA + self.table.key]
-            # print(record[INDIRECTION_COLUMN])
-            relative_version = (relative_version * -1) + 1
-            for i in range(relative_version):
-                if record[INDIRECTION_COLUMN] != SPECIAL_NULL and record[INDIRECTION_COLUMN] != rid:
-                    rid_tail = record[INDIRECTION_COLUMN]
-
-                    record = self.table.get_record(rid_tail)
-                    # print("tail record:", record_tail)
             column = record[METADATA:METADATA + self.table.num_columns + 1]
-            column[self.table.key] = key
+
+            # print(record[INDIRECTION_COLUMN])
+            tail_record = record
+            relative_version = (relative_version * -1) + 1
+            if record[INDIRECTION_COLUMN] != SPECIAL_NULL:
+                for i in range(relative_version):
+                    rid_tail = tail_record[INDIRECTION_COLUMN]
+                    tail_record = self.table.get_record(rid_tail)
+
+                    column = tail_record[METADATA:METADATA + self.table.num_columns + 1]
+                    column[self.table.key] = record[METADATA + self.table.key]
+                    if rid_tail == rid:
+                        break
+
 
             record = Record(rid, search_key, column)
             records.append(record)
