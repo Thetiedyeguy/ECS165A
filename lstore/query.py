@@ -93,6 +93,9 @@ class Query:
                 column = record_tail[METADATA:METADATA + self.table.num_columns + 1]
                 column[self.table.key] = record[METADATA + self.table.key]
 
+            for i in range(self.table.num_columns):
+                if projected_columns_index[i] == None:
+                    column[i] = None
             record = Record(rid, search_key, column)
             records.append(record)
 
