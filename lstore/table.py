@@ -36,6 +36,8 @@ class Table:
         self.rndbool = False
         self.path = path
         self.lru = LRU(self.path, self.name, self.num_columns)
+        self.inserted_record = Lock()
+        self.updated_record = Lock()
         self.lock_manager_hash = defaultdict()
 
     def __merge(self, page_range_idx):
