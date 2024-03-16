@@ -1,5 +1,7 @@
 from lstore.table import Table, Record
 from lstore.index import Index
+from lstore.lock import LockManager
+from lstore.query import Query
 
 class Transaction:
 
@@ -30,10 +32,15 @@ class Transaction:
     # If you choose to implement this differently this method must still return True if transaction commits or False on abort
     def run(self):
         for query, args in self.queries:
-            result = query(*args)
-            # If the query has failed the transaction should abort
-            if result == False:
-                return self.abort()
+            key = args[0]
+            if key not in self.table.lock_manager_hash:
+                self.insert_lock.add(key)
+                self.table.lock_manager_hash[key] = LockManager()
+            if key not in self.wlock.union(self.insert_lock):
+                if self.table.lock_manager_hash[key].acquire_writer_lock():
+                    self.wlock.add(key)
+                else:
+                    return self.abort()
         return self.commit()
 
     
