@@ -25,7 +25,7 @@ class Query:
     def delete(self, primary_key):
         if primary_key not in self.table.page_directory or primary_key is SPECIAL_NULL:
             return False
-        base_address = self.table.page_directory[rid]
+        base_address = self.table.page_directory[primary_key]
         self.table.update_value(RID_COLUMN, base_address, SPECIAL_NULL)
         return True
 
@@ -41,6 +41,7 @@ class Query:
         if self.insert_helper_record_exists(columns[self.table.key]):
             return False
 
+        self.table.inserted_record.acquire()
         #Obtain Info for meta_data
         rid = self.insert_helper_generate_rid()
         indirection = SPECIAL_NULL
@@ -54,6 +55,7 @@ class Query:
         meta_data.extend(columns)
 
         self.table.base_write(meta_data)
+        self.table.inserted_record.release()
         return True
 
     #Helper function: retrieves number of records current exist, +1 to obtain new rid
@@ -164,6 +166,8 @@ class Query:
         if rid not in self.table.page_directory or rid is SPECIAL_NULL:
             return False
 
+        self.table.updated_record.acquire()
+
         base_record = self.table.get_record(rid)
         base_rid = base_record[RID_COLUMN]
         base_indirection = base_record[INDIRECTION_COLUMN]
@@ -214,6 +218,8 @@ class Query:
         self.table.update_value(INDIRECTION_COLUMN, base_address, new_tail_rid)
         self.table.update_value(SCHEMA_ENCODING_COLUMN, base_address, new_base_encoding)
 
+        self.table.update_record.release()
+        
         return True
 
     """
