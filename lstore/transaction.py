@@ -25,8 +25,9 @@ class Transaction:
     """
     def add_query(self, query, table, *args):
         self.queries.append((query, args))
-        if self.table == None:
+        if self.table is None:
             self.table = table
+        # use grades_table for aborting
 
         
     # If you choose to implement this differently this method must still return True if transaction commits or False on abort
@@ -43,6 +44,7 @@ class Transaction:
                     return self.abort()
         return self.commit()
 
+
     
     def abort(self):
         for key in self.rlock:
@@ -52,8 +54,25 @@ class Transaction:
         for key in self.insert_lock:
             del self.table.lock_manager_hash[key]
         return False
+
     
+
     def commit(self):
-        # TODO: commit to database
+        for query, args in self.queries:
+            query(*args)
+            if query == Query.delete:
+                key = args[0]
+                del self.table.lock_manager_hash[key]
+                if key in self.wlock:
+                    self.wlock.remove(key)
+                if key in self.insert_lock:
+                    self.insert_lock.remove(key)
+        
+        for key in self.rlock:
+            self.table.lock_manager_hash[key].release_reader_lock()
+        for key in self.wlock:
+            self.table.lock_manager_hash[key].release_writer_lock()
+        for key in self.insert_lock:
+            self.table.lock_manager_hash[key].release_writer_lock()
         return True
 
