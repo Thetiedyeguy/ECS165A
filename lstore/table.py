@@ -4,6 +4,9 @@ from lstore.page import Page, PageRange
 from lstore.config import *
 import os
 import struct
+from lstore.lock import LockManager
+from threading import Lock
+from collections import defaultdict
 
 
 class Record:
@@ -33,6 +36,7 @@ class Table:
         self.rndbool = False
         self.path = path
         self.lru = LRU(self.path, self.name, self.num_columns)
+        self.lock_manager_hash = defaultdict()
 
     def __merge(self, page_range_idx):
         old_pageRange = self.pool[page_range_idx]
