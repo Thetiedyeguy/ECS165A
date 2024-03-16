@@ -7,7 +7,11 @@ class Transaction:
     # Creates a transaction object.
     """
     def __init__(self):
+        self.table = None
         self.queries = []
+        self.rlock = set()
+        self.wlock = set()
+        self.insert_lock = set()
         pass
 
     """
@@ -19,7 +23,8 @@ class Transaction:
     """
     def add_query(self, query, table, *args):
         self.queries.append((query, args))
-        # use grades_table for aborting
+        if self.table == None:
+            self.table = table
 
         
     # If you choose to implement this differently this method must still return True if transaction commits or False on abort
@@ -33,9 +38,13 @@ class Transaction:
 
     
     def abort(self):
-        #TODO: do roll-back and any other necessary operations
+        for key in self.rlock:
+            self.table.lock_manager_hash[key].release_reader_lock()
+        for key in self.wlock:
+            self.table.lock_manager_hash[key].release_writer_lock()
+        for key in self.insert_lock:
+            del self.table.lock_manager_hash[key]
         return False
-
     
     def commit(self):
         # TODO: commit to database
