@@ -96,7 +96,7 @@ class Table:
         if not os.path.exists(folder):
             os.mkdir(folder)
         current_byte = 0
-        page_range_amt = self.lru.num_ranges
+        page_range_amt = len(self.pool)
         page_directory_size = (len(self.page_directory) * RECORD_SIZE * 5) + RECORD_SIZE
         key_to_rid_size = (len(self.key_to_rid) * RECORD_SIZE * 2) + RECORD_SIZE
         table_metadata_size = (3 * RECORD_SIZE * page_range_amt) + RECORD_SIZE
@@ -258,8 +258,8 @@ class LRU():
         self.oldest = None
         self.path = path
         self.table_name = name
-        self.num_ranges = 0
-        self.max_ranges = 100
+        self.num_pages = 0
+        self.max_pages = 100
         self.num_columns = columns
 
     def created(self, pageRange):
@@ -269,11 +269,12 @@ class LRU():
             pageRange.prev = self.latest
             self.latest.next = pageRange
         self.latest = pageRange
-        self.num_ranges += 1
+        self.num_pages += 16
         if self.isFull():
             self.delete()
 
     def delete(self):
+        self.num_pages -= (self.oldest.current_tail_idx + 16)
         if self.oldest.dirty:
             path = self.path + '/' + self.table_name + '/' + str(self.oldest.idx)
             self.write_page(path, self.oldest)
@@ -285,7 +286,6 @@ class LRU():
         else:
             del self.oldest
             self.oldest = None
-        self.num_ranges -= 1
 
     def accessed(self, pageRange):
         if self.latest != pageRange:
@@ -297,7 +297,7 @@ class LRU():
                 self.latest = pageRange
 
     def isFull(self):
-        return self.num_ranges >= self.max_ranges
+        return self.num_pages >= self.max_pages
 
     def read_page(self, path):
         f = open(path, 'rb')
