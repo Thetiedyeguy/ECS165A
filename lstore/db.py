@@ -19,16 +19,16 @@ class Database():
             fileContent = f.read()
             current_byte = 0
             struct.unpack("i" * ((len(fileContent) -24) // 4), fileContent[20:-4])
-            table_amt = int.from_bytes(fileContent[current_byte:current_byte + RECORD_SIZE])
+            table_amt = int.from_bytes(fileContent[current_byte:current_byte + RECORD_SIZE], byteorder='big')
             current_byte += RECORD_SIZE
             for i in range(table_amt):
-                length = int.from_bytes(fileContent[current_byte:current_byte + RECORD_SIZE])
+                length = int.from_bytes(fileContent[current_byte:current_byte + RECORD_SIZE], byteorder='big')
                 current_byte += RECORD_SIZE
                 name = fileContent[current_byte: current_byte + length].decode('utf-8')
                 current_byte += length
-                num_columns = int.from_bytes(fileContent[current_byte:current_byte + RECORD_SIZE])
+                num_columns = int.from_bytes(fileContent[current_byte:current_byte + RECORD_SIZE], byteorder='big')
                 current_byte += RECORD_SIZE
-                key = int.from_bytes(fileContent[current_byte:current_byte + RECORD_SIZE])
+                key = int.from_bytes(fileContent[current_byte:current_byte + RECORD_SIZE], byteorder='big')
                 current_byte += RECORD_SIZE
                 table = self.create_table(name, num_columns, key)
                 table.open()
