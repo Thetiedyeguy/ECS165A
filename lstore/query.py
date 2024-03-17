@@ -218,8 +218,8 @@ class Query:
         self.table.update_value(INDIRECTION_COLUMN, base_address, new_tail_rid)
         self.table.update_value(SCHEMA_ENCODING_COLUMN, base_address, new_base_encoding)
 
-        self.table.update_record.release()
-        
+        self.table.updated_record.release()
+
         return True
 
     """
