@@ -60,38 +60,38 @@ class Table:
             fileContent = f.read()
             current_byte = 0
             struct.unpack("i" * ((len(fileContent) -24) // 4), fileContent[20:-4])
-            page_range_amt = int.from_bytes(fileContent[current_byte:current_byte + RECORD_SIZE])
+            page_range_amt = int.from_bytes(fileContent[current_byte:current_byte + RECORD_SIZE], byteorder='big')
             current_byte += RECORD_SIZE
             for i in range(page_range_amt):
-                page_range_idx = int.from_bytes(fileContent[current_byte:current_byte + RECORD_SIZE])
+                page_range_idx = int.from_bytes(fileContent[current_byte:current_byte + RECORD_SIZE], byteorder='big')
                 current_byte += RECORD_SIZE
                 path = self.path + '/' + self.name + '/' + str(page_range_idx)
                 pageRange = self.lru.read_page(path)
                 self.pool[page_range_idx] = pageRange
                 self.lru.created(pageRange)
-            directory_keys = int.from_bytes(fileContent[current_byte:current_byte + RECORD_SIZE])
+            directory_keys = int.from_bytes(fileContent[current_byte:current_byte + RECORD_SIZE], byteorder='big')
             current_byte += RECORD_SIZE
             for i in range(directory_keys):
-                key = int.from_bytes(fileContent[current_byte:current_byte + RECORD_SIZE])
+                key = int.from_bytes(fileContent[current_byte:current_byte + RECORD_SIZE], byteorder='big')
                 current_byte += RECORD_SIZE
                 address = [None, None, None, None]
-                address[0] = int.from_bytes(fileContent[current_byte:current_byte + RECORD_SIZE])
+                address[0] = int.from_bytes(fileContent[current_byte:current_byte + RECORD_SIZE], byteorder='big')
                 current_byte += RECORD_SIZE
-                length = int.from_bytes(fileContent[current_byte:current_byte + RECORD_SIZE])
+                length = int.from_bytes(fileContent[current_byte:current_byte + RECORD_SIZE], byteorder='big')
                 current_byte += RECORD_SIZE
                 address[1] = fileContent[current_byte: current_byte + length].decode('utf-8')
                 current_byte += length
-                address[2] = int.from_bytes(fileContent[current_byte:current_byte + RECORD_SIZE])
+                address[2] = int.from_bytes(fileContent[current_byte:current_byte + RECORD_SIZE], byteorder='big')
                 current_byte += RECORD_SIZE
-                address[3] = int.from_bytes(fileContent[current_byte:current_byte + RECORD_SIZE])
+                address[3] = int.from_bytes(fileContent[current_byte:current_byte + RECORD_SIZE], byteorder='big')
                 current_byte += RECORD_SIZE
                 self.page_directory[key] = address
-            keys = int.from_bytes(fileContent[current_byte:current_byte + RECORD_SIZE])
+            keys = int.from_bytes(fileContent[current_byte:current_byte + RECORD_SIZE], byteorder='big')
             current_byte += RECORD_SIZE
             for i in range(keys):
-                key = int.from_bytes(fileContent[current_byte:current_byte + RECORD_SIZE])
+                key = int.from_bytes(fileContent[current_byte:current_byte + RECORD_SIZE], byteorder='big')
                 current_byte += RECORD_SIZE
-                rid = int.from_bytes(fileContent[current_byte:current_byte + RECORD_SIZE])
+                rid = int.from_bytes(fileContent[current_byte:current_byte + RECORD_SIZE], byteorder='big')
                 current_byte += RECORD_SIZE
                 self.key_to_rid[key] = rid
             f.close()
@@ -311,17 +311,17 @@ class LRU():
         fileContent = f.read()
         struct.unpack("i" * ((len(fileContent) -24) // 4), fileContent[20:-4])
         current_byte = 0
-        current_base_idx = int.from_bytes(fileContent[current_byte:current_byte + RECORD_SIZE])
+        current_base_idx = int.from_bytes(fileContent[current_byte:current_byte + RECORD_SIZE], byteorder='big')
         current_byte += RECORD_SIZE
-        current_tail_idx = int.from_bytes(fileContent[current_byte:current_byte + RECORD_SIZE])
+        current_tail_idx = int.from_bytes(fileContent[current_byte:current_byte + RECORD_SIZE], byteorder='big')
         current_byte += RECORD_SIZE
         for i in range(current_base_idx):
             pageRange.make_base_page(i)
             for j in range(self.num_columns + METADATA):
                 page = pageRange.get_current_base(j)
-                page.num_records = int.from_bytes(fileContent[current_byte:current_byte + RECORD_SIZE])
+                page.num_records = int.from_bytes(fileContent[current_byte:current_byte + RECORD_SIZE], byteorder='big')
                 current_byte += RECORD_SIZE
-                page.tps = int.from_bytes(fileContent[current_byte:current_byte + RECORD_SIZE])
+                page.tps = int.from_bytes(fileContent[current_byte:current_byte + RECORD_SIZE], byteorder='big')
                 current_byte += RECORD_SIZE
                 page.data = bytearray(fileContent[current_byte:current_byte + PAGE_SIZE])
                 current_byte += PAGE_SIZE
@@ -332,9 +332,9 @@ class LRU():
             pageRange.make_tail_page()
             for j in range(self.num_columns + METADATA):
                 page = pageRange.get_current_tail(j)
-                page.num_records = int.from_bytes(fileContent[current_byte:current_byte + RECORD_SIZE])
+                page.num_records = int.from_bytes(fileContent[current_byte:current_byte + RECORD_SIZE], byteorder='big')
                 current_byte += RECORD_SIZE
-                page.tps = int.from_bytes(fileContent[current_byte:current_byte + RECORD_SIZE])
+                page.tps = int.from_bytes(fileContent[current_byte:current_byte + RECORD_SIZE], byteorder='big')
                 current_byte += RECORD_SIZE
                 page.data = bytearray(fileContent[current_byte:current_byte + PAGE_SIZE])
                 current_byte += PAGE_SIZE
