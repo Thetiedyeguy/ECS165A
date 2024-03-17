@@ -37,9 +37,6 @@ class Query:
     """
     def insert(self, *columns):
 
-        #Check if key exists, if it doesnt then return false
-        if self.insert_helper_record_exists(columns[self.table.key]):
-            return False
 
         self.table.inserted_record.acquire()
         #Obtain Info for meta_data
@@ -63,10 +60,6 @@ class Query:
         rid = self.table.records + 906659671
         return rid
 
-    def insert_helper_record_exists(self, key):
-        key_index = self.table.index
-        locations = key_index.locate(self.table.key, key)
-        return len(locations) > 0
 
     def select(self, search_key, search_key_index, projected_columns_index):
         rids = []
@@ -74,32 +67,35 @@ class Query:
         column = []
         if search_key_index == self.table.key:
             rids.append(self.table.key_to_rid[search_key])
+        elif self.table.index.has_index(search_key_index):
+            rids = self.table.index.locate(search_key_index, search_key)
         else:
             rids.extend(self.table.get_rid(search_key_index, search_key))
 
 
         for rid in rids:
             record = self.table.get_record(rid)
-            # print("record:", record)
-            # if(rid != record[RID_COLUMN]):
-                # print(rid, " ", record)
-            column = record[METADATA:METADATA + self.table.num_columns + 1]
+            if rid == record[BASE_RID_COLUMN]:
+                # print("record:", record)
+                # if(rid != record[RID_COLUMN]):
+                    # print(rid, " ", record)
+                column = record[METADATA:METADATA + self.table.num_columns + 1]
 
-            # print(record[INDIRECTION_COLUMN])
+                # print(record[INDIRECTION_COLUMN])
 
-            if record[INDIRECTION_COLUMN] != SPECIAL_NULL:
-                rid_tail = record[INDIRECTION_COLUMN]
+                if record[INDIRECTION_COLUMN] != SPECIAL_NULL:
+                    rid_tail = record[INDIRECTION_COLUMN]
 
-                record_tail = self.table.get_record(rid_tail)
-                # print("tail record:", record_tail)
-                column = record_tail[METADATA:METADATA + self.table.num_columns + 1]
-                column[self.table.key] = record[METADATA + self.table.key]
+                    record_tail = self.table.get_record(rid_tail)
+                    # print("tail record:", record_tail)
+                    column = record_tail[METADATA:METADATA + self.table.num_columns + 1]
+                    column[self.table.key] = record[METADATA + self.table.key]
 
-            for i in range(self.table.num_columns):
-                if projected_columns_index[i] == None:
-                    column[i] = None
-            record = Record(rid, search_key, column)
-            records.append(record)
+                for i in range(self.table.num_columns):
+                    if projected_columns_index[i] == None:
+                        column[i] = None
+                record = Record(rid, search_key, column)
+                records.append(record)
 
         return records
 
@@ -119,8 +115,33 @@ class Query:
         rids = []
         records = []
         column = []
+        base_rids = []
         if search_key_index == self.table.key:
             rids.append(self.table.key_to_rid[search_key])
+        elif self.table.index.has_index(search_key_index):
+            rids = self.table.index.locate(search_key_index, search_key)
+            for rid in rids:
+                record = self.table.get_record(rid)
+                base_rid = record[BASE_RID_COLUMN]
+                base_record = self.table.get_record(base_rid)
+                tail_record = base_record
+                relative_version = (relative_version * -1) + 1
+                if base_record[INDIRECTION_COLUMN] != SPECIAL_NULL:
+                    for i in range(relative_version):
+                        rid_tail = tail_record[INDIRECTION_COLUMN]
+                        tail_record = self.table.get_record(rid_tail)
+                        column = tail_record[METADATA:METADATA + self.table.num_columns + 1]
+                        column[self.table.key] = record[METADATA + self.table.key]
+                        if rid_tail == rid or rid_tail == base_rid:
+                            break
+
+                if tail_record == record:
+                    record = Record(base_rid, search_key, column)
+                if base_rid not in base_rids:
+                    records.append(record)
+                    base_rids.append(base_rid)
+
+            return records
         else:
             rids.extend(self.table.get_rid(search_key_index, search_key))
 
@@ -135,10 +156,12 @@ class Query:
             # print(record[INDIRECTION_COLUMN])
             tail_record = record
             relative_version = (relative_version * -1) + 1
+            print(record)
             if record[INDIRECTION_COLUMN] != SPECIAL_NULL:
                 for i in range(relative_version):
                     rid_tail = tail_record[INDIRECTION_COLUMN]
                     tail_record = self.table.get_record(rid_tail)
+                    print(tail_record)
 
                     column = tail_record[METADATA:METADATA + self.table.num_columns + 1]
                     column[self.table.key] = record[METADATA + self.table.key]
