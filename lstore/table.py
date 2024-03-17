@@ -178,6 +178,7 @@ class Table:
         self.page_directory[rid] = address
         self.records += 1
         self.key_to_rid[columns[self.key + METADATA]] = rid
+        self.index.push_index(columns[METADATA:len(columns) + 1], rid)
 
     def tail_write(self, columns):
         page_range_idx, page_idx = self.get_page_location(columns[BASE_RID_COLUMN])
@@ -196,6 +197,7 @@ class Table:
         address = [offset, 'tail', page_range_idx, page_idx]
         self.page_directory[rid] = address
         self.updates += 1
+        self.index.push_index(columns[METADATA:len(columns) + 1], rid)
 
     def get_rid(self, column_index, target):
         rids = []
