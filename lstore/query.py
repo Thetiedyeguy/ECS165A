@@ -156,12 +156,12 @@ class Query:
             # print(record[INDIRECTION_COLUMN])
             tail_record = record
             relative_version = (relative_version * -1) + 1
-            print(record)
+            # print(record)
             if record[INDIRECTION_COLUMN] != SPECIAL_NULL:
                 for i in range(relative_version):
                     rid_tail = tail_record[INDIRECTION_COLUMN]
                     tail_record = self.table.get_record(rid_tail)
-                    print(tail_record)
+                    # print(tail_record)
 
                     column = tail_record[METADATA:METADATA + self.table.num_columns + 1]
                     column[self.table.key] = record[METADATA + self.table.key]
